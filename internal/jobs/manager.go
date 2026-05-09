@@ -361,6 +361,9 @@ func validateCreate(req CreateRequest) error {
 	if req.Mode != ModeTextToImage && req.Mode != ModeImageToImage {
 		return errors.New("任务模式无效")
 	}
+	if req.Mode == ModeImageToImage && len(req.UploadIDs) > uploads.MaxReferenceImages {
+		return fmt.Errorf("图生图参考图最多 %d 张", uploads.MaxReferenceImages)
+	}
 	return nil
 }
 

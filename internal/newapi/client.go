@@ -10,6 +10,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"os"
 	"path/filepath"
 	"strings"
@@ -137,12 +138,23 @@ func addImagePart(writer *multipart.Writer, input InputImage, idx int) error {
 	if name == "" {
 		name = fmt.Sprintf("input-%d%s", idx+1, filepath.Ext(input.Path))
 	}
-	part, err := writer.CreateFormFile("image[]", name)
+	mime := strings.ToLower(strings.TrimSpace(strings.Split(input.Mime, ";")[0]))
+	if !strings.HasPrefix(mime, "image/") {
+		mime = "application/octet-stream"
+	}
+	header := make(textproto.MIMEHeader)
+	header.Set("Content-Disposition", fmt.Sprintf(`form-data; name="image[]"; filename="%s"`, escapeMultipartFilename(name)))
+	header.Set("Content-Type", mime)
+	part, err := writer.CreatePart(header)
 	if err != nil {
 		return err
 	}
 	_, err = io.Copy(part, file)
 	return err
+}
+
+func escapeMultipartFilename(value string) string {
+	return strings.NewReplacer("\\", "\\\\", `"`, "\\\"").Replace(value)
 }
 
 func (c *Client) doAndParse(ctx context.Context, req *http.Request) (Image, error) {

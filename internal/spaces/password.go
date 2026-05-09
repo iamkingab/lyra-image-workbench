@@ -29,7 +29,7 @@ func ValidatePassword(value string) error {
 	if allSame(compact) {
 		return NewValidationError("SPACE_PASSWORD_REPEATED_CHAR", "空间密码过于简单：不能使用同一个字符重复")
 	}
-	if regexp.MustCompile(`(.)\1{5,}`).MatchString(compact) {
+	if hasRepeatedRun(compact, 6) {
 		return NewValidationError("SPACE_PASSWORD_MANY_REPEATS", "空间密码过于简单：不能包含大量连续重复字符")
 	}
 	if isSequential(lower) {
@@ -199,13 +199,39 @@ func isDateLike(value string) bool {
 	if !regexp.MustCompile(`^\d+$`).MatchString(value) {
 		return false
 	}
-	if regexp.MustCompile(`^(19|20)\d{2}\1`).MatchString(value) {
+	if len(value) >= 8 {
+		year := value[:4]
+		if (strings.HasPrefix(year, "19") || strings.HasPrefix(year, "20")) && strings.HasPrefix(value[4:], year) {
+			return true
+		}
+	}
+	if regexp.MustCompile(`^(19|20)\d{6,}$`).MatchString(value) {
 		return true
 	}
 	if len(value) >= 4 && regexp.MustCompile(`^(19|20)\d{2}$`).MatchString(value[:4]) && hasRepeatedPattern(value) {
 		return true
 	}
-	return regexp.MustCompile(`^(19|20)\d{6,}$`).MatchString(value)
+	return false
+}
+
+func hasRepeatedRun(value string, maxRun int) bool {
+	if maxRun <= 1 {
+		return value != ""
+	}
+	var last rune
+	count := 0
+	for _, item := range value {
+		if item == last {
+			count++
+		} else {
+			last = item
+			count = 1
+		}
+		if count >= maxRun {
+			return true
+		}
+	}
+	return false
 }
 
 func min(a int, b int) int {

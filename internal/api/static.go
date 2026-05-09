@@ -19,13 +19,17 @@ func (h StaticHandler) Serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	path := strings.TrimPrefix(r.URL.Path, "/")
+	if path == "api" || strings.HasPrefix(path, "api/") || path == "outputs" || strings.HasPrefix(path, "outputs/") {
+		http.NotFound(w, r)
+		return
+	}
 	if path == "" {
 		path = "index.html"
 	}
 	file := filepath.Join(h.dir, filepath.Clean(path))
 	root, _ := filepath.Abs(h.dir)
 	abs, _ := filepath.Abs(file)
-	if !strings.HasPrefix(abs, root) {
+	if abs != root && !strings.HasPrefix(abs, root+string(filepath.Separator)) {
 		http.NotFound(w, r)
 		return
 	}

@@ -38,9 +38,11 @@ export function WorkbenchPage() {
     })
   }, [])
 
-  useTaskEvents(activeId, upsertTask, (event: TaskEvent) => {
+  const handleTaskEvent = useCallback((event: TaskEvent) => {
     if (event.event !== 'heartbeat') setMessage(`${event.chinese} / ${event.english} / ${event.code}`)
-  })
+  }, [])
+
+  useTaskEvents(activeId, upsertTask, handleTaskEvent)
 
   useEffect(() => {
     const token = getSpaceToken()

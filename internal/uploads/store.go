@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -62,6 +63,13 @@ func (s *Store) SaveReferenceImages(spaceToken string, headers []*multipart.File
 	uploadDir := filepath.Join(spaceDir, "uploads")
 	if err := os.MkdirAll(uploadDir, 0o700); err != nil {
 		return nil, err
+	}
+	existing, err := s.listReferenceImagesInDir(uploadDir)
+	if err != nil {
+		return nil, err
+	}
+	if len(existing)+len(headers) > MaxReferenceImages {
+		return nil, NewUploadError("REFERENCE_IMAGE_TOO_MANY", "当前空间参考图最多保留 8 张，请先删除旧图")
 	}
 
 	items := make([]ReferenceImage, 0, len(headers))
@@ -132,10 +140,15 @@ func (s *Store) saveOne(uploadDir string, header *multipart.FileHeader) (Referen
 	return item, nil
 }
 
-func detectMime(data []byte, declared string) string {
-	declared = strings.ToLower(strings.TrimSpace(strings.Split(declared, ";")[0]))
-	if _, ok := allowedImageTypes[declared]; ok {
-		return declared
+func detectMime(data []byte, _ string) string {
+	if len(data) >= 8 && bytesHasPrefix(data, []byte{0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n'}) {
+		return "image/png"
+	}
+	if len(data) >= 3 && bytesHasPrefix(data, []byte{0xff, 0xd8, 0xff}) {
+		return "image/jpeg"
+	}
+	if len(data) >= 12 && string(data[:4]) == "RIFF" && string(data[8:12]) == "WEBP" {
+		return "image/webp"
 	}
 	return http.DetectContentType(data)
 }
@@ -175,6 +188,10 @@ func (s *Store) ListReferenceImages(spaceToken string) ([]ReferenceImage, error)
 		return nil, err
 	}
 	uploadDir := filepath.Join(spaceDir, "uploads")
+	return s.listReferenceImagesInDir(uploadDir)
+}
+
+func (s *Store) listReferenceImagesInDir(uploadDir string) ([]ReferenceImage, error) {
 	entries, err := os.ReadDir(uploadDir)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -192,6 +209,9 @@ func (s *Store) ListReferenceImages(spaceToken string) ([]ReferenceImage, error)
 			items = append(items, item)
 		}
 	}
+	sort.Slice(items, func(i int, j int) bool {
+		return items[i].CreatedAt > items[j].CreatedAt
+	})
 	return items, nil
 }
 
@@ -253,4 +273,16 @@ func (e UploadError) Error() string {
 
 func AsUploadError(err error, target *UploadError) bool {
 	return errors.As(err, target)
+}
+
+func bytesHasPrefix(data []byte, prefix []byte) bool {
+	if len(data) < len(prefix) {
+		return false
+	}
+	for i := range prefix {
+		if data[i] != prefix[i] {
+			return false
+		}
+	}
+	return true
 }
