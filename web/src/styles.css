@@ -624,19 +624,17 @@ button:not(.primary) { background: var(--surface-soft); color: #1e3a8a; border: 
 }
 
 .gallery-shell {
-  --bg: #08090b;
-  --surface: #17181c;
-  --surface-soft: #202127;
-  --border: #2a2d35;
-  --border-strong: #3a3f4b;
-  --text: #f8fafc;
-  --muted: #a1a1aa;
-  --muted-2: #71717a;
-  --primary: #2563eb;
-  --primary-2: #60a5fa;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(37, 99, 235, .12), transparent 32rem),
-    var(--bg);
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-soft: #f8fafc;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --text: #0f172a;
+  --muted: #64748b;
+  --muted-2: #94a3b8;
+  --primary: #111827;
+  --primary-2: #2563eb;
+  background: var(--bg);
   color: var(--text);
   min-height: 100vh;
   padding-bottom: 260px;
@@ -646,7 +644,7 @@ button:not(.primary) { background: var(--surface-soft); color: #1e3a8a; border: 
   margin: 0 auto 28px;
   border-bottom-color: var(--border);
 }
-.gallery-shell .brand-mark { background: #f8fafc; color: #09090b; }
+.gallery-shell .brand-mark { background: #111827; color: #ffffff; }
 .gallery-shell .brand h1 { color: var(--text); }
 .gallery-shell .ghost-link,
 .gallery-shell button:not(.primary) {
@@ -753,7 +751,7 @@ button:not(.primary) { background: var(--surface-soft); color: #1e3a8a; border: 
 .gallery-card:hover,
 .gallery-card.active {
   border-color: var(--primary-2);
-  background: #1b1d24;
+  background: #f8fafc;
 }
 .gallery-card.selected {
   border-color: #8b5cf6;
@@ -763,7 +761,7 @@ button:not(.primary) { background: var(--surface-soft); color: #1e3a8a; border: 
 .gallery-cover {
   position: relative;
   min-height: 188px;
-  background: #101114;
+  background: #f8fafc;
 }
 .gallery-cover img {
   width: 100%;
@@ -780,10 +778,10 @@ button:not(.primary) { background: var(--surface-soft); color: #1e3a8a; border: 
   align-items: center;
   gap: 6px;
   padding: 6px 8px;
-  border: 1px solid rgba(255, 255, 255, .18);
+  border: 1px solid rgba(226, 232, 240, .92);
   border-radius: 999px;
-  background: rgba(15, 23, 42, .76);
-  color: #f8fafc;
+  background: rgba(255, 255, 255, .86);
+  color: #0f172a;
   font-size: 12px;
   font-weight: 900;
   cursor: pointer;
@@ -882,13 +880,13 @@ button:not(.primary) { background: var(--surface-soft); color: #1e3a8a; border: 
   font-size: 12px;
 }
 .danger-text {
-  color: #ff9b9b;
-  border-color: rgba(255, 115, 115, .42);
+  color: #dc2626;
+  border-color: rgba(220, 38, 38, .26);
 }
 .danger-text:hover {
-  color: #ffd2d2;
-  border-color: rgba(255, 139, 139, .7);
-  background: rgba(255, 92, 92, .12);
+  color: #991b1b;
+  border-color: rgba(220, 38, 38, .42);
+  background: rgba(254, 226, 226, .8);
 }
 .gallery-empty {
   min-height: 360px;
@@ -898,7 +896,7 @@ button:not(.primary) { background: var(--surface-soft); color: #1e3a8a; border: 
   gap: 10px;
   border: 1px dashed var(--border);
   border-radius: 18px;
-  background: rgba(23, 24, 28, .72);
+  background: #ffffff;
   color: var(--muted);
   text-align: center;
 }
@@ -918,7 +916,7 @@ button:not(.primary) { background: var(--surface-soft); color: #1e3a8a; border: 
   overflow: auto;
   padding: 16px 18px;
   border-radius: 28px;
-  background: rgba(23, 24, 28, .94);
+  background: rgba(255, 255, 255, .96);
   border-color: var(--border-strong);
   backdrop-filter: blur(18px);
 }
