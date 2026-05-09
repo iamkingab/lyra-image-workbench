@@ -27,3 +27,4 @@ npm run dev
 - docs/STACK.md：Go 后端与 React/Vite 前端选型。
 - docs/PROJECT_REQUIREMENTS.md：项目模块化和 10 分钟稳定性硬性要求。
 
+
