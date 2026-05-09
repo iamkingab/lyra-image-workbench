@@ -202,6 +202,7 @@ function taskParameters(task: Task) {
     !task.ratio || task.ratio === 'auto' ? '自动比例' : `比例 ${task.ratio}`,
     `清晰度 ${resolutionLabel(task.resolution)}`,
     `质量 ${qualityLabel(task.quality)}`,
+    `格式 ${outputFormatLabel(task.outputFormat)}`,
     task.size && task.size !== '自动' ? `尺寸 ${task.size}` : '自动尺寸',
     `数量 ${task.count || 1}`,
     `并发 ${task.concurrency || 1}`,
@@ -228,6 +229,12 @@ function qualityLabel(value?: string) {
   const labels: Record<string, string> = { auto: '自动', low: '低', medium: '中', high: '高' }
   if (!value) return '自动'
   return labels[value] || value
+}
+
+function outputFormatLabel(value?: string) {
+  const labels: Record<string, string> = { png: 'PNG', jpeg: 'JPG', jpg: 'JPG', webp: 'WEBP' }
+  if (!value) return 'PNG'
+  return labels[value] || value.toUpperCase()
 }
 
 function flash(setNotice: (value: string) => void, value: string) {

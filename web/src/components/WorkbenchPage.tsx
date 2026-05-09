@@ -34,6 +34,7 @@ export function WorkbenchPage() {
   const [ratio, setRatio] = useState('1:1')
   const [resolution, setResolution] = useState('standard')
   const [quality, setQuality] = useState('auto')
+  const [outputFormat, setOutputFormat] = useState('png')
   const [count, setCount] = useState<NumericInputValue>(1)
   const [concurrency, setConcurrency] = useState<NumericInputValue>(1)
   const [message, setMessage] = useState('')
@@ -119,6 +120,7 @@ export function WorkbenchPage() {
       ratio,
       resolution,
       quality,
+      outputFormat,
       count: numericOrDefault(count, 1),
       concurrency: numericOrDefault(concurrency, 1),
       uploadIds: mode === 'image-to-image' ? uploads.map((item) => item.id) : [],
@@ -172,6 +174,7 @@ export function WorkbenchPage() {
     setRatio(task.ratio || '1:1')
     setResolution(task.resolution || 'standard')
     setQuality(task.quality || 'auto')
+    setOutputFormat(task.outputFormat || 'png')
     setCount(task.count || 1)
     setConcurrency(task.concurrency || 1)
     setMessage('已复用该任务的提示词和参数')
@@ -346,6 +349,7 @@ export function WorkbenchPage() {
             ratio={ratio}
             resolution={resolution}
             quality={quality}
+            outputFormat={outputFormat}
             count={count}
             concurrency={concurrency}
             uploads={uploads}
@@ -358,6 +362,7 @@ export function WorkbenchPage() {
             onRatioChange={setRatio}
             onResolutionChange={setResolution}
             onQualityChange={setQuality}
+            onOutputFormatChange={setOutputFormat}
             onCountChange={setCount}
             onConcurrencyChange={setConcurrency}
             onOpenSettings={() => setSettingsOpen(true)}

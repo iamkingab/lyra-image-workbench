@@ -28,15 +28,16 @@ type InputImage struct {
 }
 
 type Request struct {
-	Mode        string
-	BaseURL     string
-	APIKey      string
-	Model       string
-	Prompt      string
-	Size        string
-	Quality     string
-	TimeoutSec  int
-	InputImages []InputImage
+	Mode         string
+	BaseURL      string
+	APIKey       string
+	Model        string
+	Prompt       string
+	Size         string
+	Quality      string
+	OutputFormat string
+	TimeoutSec   int
+	InputImages  []InputImage
 }
 
 type Image struct {
@@ -79,11 +80,13 @@ func (c *Client) Generate(ctx context.Context, req Request) (Image, error) {
 }
 
 func (c *Client) generateText(ctx context.Context, req Request) (Image, error) {
+	outputFormat := normalizeOutputFormat(req.OutputFormat)
 	body := map[string]any{
 		"model":           req.Model,
 		"prompt":          req.Prompt,
 		"n":               1,
 		"response_format": "b64_json",
+		"output_format":   outputFormat,
 	}
 	if req.Size != "" && req.Size != "自动" && req.Size != "auto" {
 		body["size"] = req.Size
@@ -102,7 +105,7 @@ func (c *Client) generateText(ctx context.Context, req Request) (Image, error) {
 	httpReq.Header.Set("Authorization", "Bearer "+req.APIKey)
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Cache-Control", "no-store")
-	return c.doAndParse(ctx, httpReq)
+	return c.doAndParse(ctx, httpReq, outputFormat)
 }
 
 func (c *Client) editImage(ctx context.Context, req Request) (Image, error) {
@@ -111,10 +114,12 @@ func (c *Client) editImage(ctx context.Context, req Request) (Image, error) {
 	}
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
+	outputFormat := normalizeOutputFormat(req.OutputFormat)
 	_ = writer.WriteField("model", req.Model)
 	_ = writer.WriteField("prompt", req.Prompt)
 	_ = writer.WriteField("n", "1")
 	_ = writer.WriteField("response_format", "b64_json")
+	_ = writer.WriteField("output_format", outputFormat)
 	if req.Size != "" && req.Size != "自动" && req.Size != "auto" {
 		_ = writer.WriteField("size", req.Size)
 	}
@@ -136,7 +141,7 @@ func (c *Client) editImage(ctx context.Context, req Request) (Image, error) {
 	httpReq.Header.Set("Authorization", "Bearer "+req.APIKey)
 	httpReq.Header.Set("Content-Type", writer.FormDataContentType())
 	httpReq.Header.Set("Cache-Control", "no-store")
-	return c.doAndParse(ctx, httpReq)
+	return c.doAndParse(ctx, httpReq, outputFormat)
 }
 
 func addImagePart(writer *multipart.Writer, input InputImage, idx int) error {
@@ -168,7 +173,7 @@ func escapeMultipartFilename(value string) string {
 	return strings.NewReplacer("\\", "\\\\", `"`, "\\\"").Replace(value)
 }
 
-func (c *Client) doAndParse(ctx context.Context, req *http.Request) (Image, error) {
+func (c *Client) doAndParse(ctx context.Context, req *http.Request, requestedFormat string) (Image, error) {
 	res, err := c.httpClient.Do(req)
 	if err != nil {
 		return Image{}, err
@@ -208,13 +213,14 @@ func (c *Client) doAndParse(ctx context.Context, req *http.Request) (Image, erro
 			if err != nil {
 				return Image{}, err
 			}
+			outputFormat := normalizeOutputFormat(firstNonEmpty(item.OutputFormat, payload.OutputFormat, requestedFormat, "png"))
 			return Image{
 				Bytes:         data,
-				Mime:          "image/png",
+				Mime:          mimeFromOutputFormat(outputFormat),
 				RevisedPrompt: firstNonEmpty(item.RevisedPrompt, payload.RevisedPrompt),
 				ActualSize:    firstNonEmpty(item.Size, payload.Size),
 				ActualQuality: firstNonEmpty(item.Quality, payload.Quality),
-				OutputFormat:  firstNonEmpty(item.OutputFormat, payload.OutputFormat, "png"),
+				OutputFormat:  outputFormat,
 			}, nil
 		}
 		if strings.HasPrefix(item.URL, "http://") || strings.HasPrefix(item.URL, "https://") {
@@ -301,6 +307,30 @@ func normalizeQuality(value string) string {
 		return strings.TrimSpace(value)
 	default:
 		return "auto"
+	}
+}
+
+func normalizeOutputFormat(value string) string {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "jpg", "jpeg":
+		return "jpeg"
+	case "webp":
+		return "webp"
+	case "png":
+		return "png"
+	default:
+		return "png"
+	}
+}
+
+func mimeFromOutputFormat(format string) string {
+	switch normalizeOutputFormat(format) {
+	case "jpeg":
+		return "image/jpeg"
+	case "webp":
+		return "image/webp"
+	default:
+		return "image/png"
 	}
 }
 

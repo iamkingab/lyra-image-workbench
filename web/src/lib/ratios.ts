@@ -2,11 +2,13 @@ export const RATIOS = ['auto', '1:1', '2:3', '3:2', '3:4', '4:3', '9:16', '16:9'
 export const FIXED_RATIOS = ['1:1', '2:3', '3:2', '3:4', '4:3', '9:16', '16:9'] as const
 export const RESOLUTION_TIERS = ['auto', 'standard', '2k', '4k'] as const
 export const QUALITY_LEVELS = ['auto', 'low', 'medium', 'high'] as const
+export const OUTPUT_FORMATS = ['png', 'jpeg', 'webp'] as const
 
 export type AspectRatio = typeof RATIOS[number]
 export type FixedRatio = typeof FIXED_RATIOS[number]
 export type ResolutionTier = typeof RESOLUTION_TIERS[number]
 export type QualityLevel = typeof QUALITY_LEVELS[number]
+export type OutputFormat = typeof OUTPUT_FORMATS[number]
 
 export const RESOLUTION_LABEL: Record<ResolutionTier, string> = {
   auto: '自动',
@@ -20,6 +22,12 @@ export const QUALITY_LABEL: Record<QualityLevel, string> = {
   low: '低',
   medium: '中',
   high: '高',
+}
+
+export const OUTPUT_FORMAT_LABEL: Record<OutputFormat, string> = {
+  png: 'PNG',
+  jpeg: 'JPG',
+  webp: 'WEBP',
 }
 
 export const SIZE_MAP: Record<Exclude<ResolutionTier, 'auto'>, Record<FixedRatio, string>> = {
@@ -70,6 +78,10 @@ export function getResolutionLabel(resolution: string) {
 
 export function getQualityLabel(quality: string) {
   return QUALITY_LEVELS.includes(quality as QualityLevel) ? QUALITY_LABEL[quality as QualityLevel] : quality
+}
+
+export function getOutputFormatLabel(format: string) {
+  return OUTPUT_FORMATS.includes(format as OutputFormat) ? OUTPUT_FORMAT_LABEL[format as OutputFormat] : format.toUpperCase()
 }
 
 export function getAvailableRatios(resolution: string): readonly AspectRatio[] {

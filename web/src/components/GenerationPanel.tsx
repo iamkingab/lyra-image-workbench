@@ -2,6 +2,7 @@ import { type FormEvent } from 'react'
 import type { Mode, ReferenceUpload } from '../types'
 import { QualityPicker } from './QualityPicker'
 import { ImageSpecPicker } from './ImageSpecPicker'
+import { OutputFormatPicker } from './OutputFormatPicker'
 import { UploadPanel } from './UploadPanel'
 
 type NumericInputValue = number | ''
@@ -12,6 +13,7 @@ type Props = {
   ratio: string
   resolution: string
   quality: string
+  outputFormat: string
   count: NumericInputValue
   concurrency: NumericInputValue
   uploads: ReferenceUpload[]
@@ -24,6 +26,7 @@ type Props = {
   onRatioChange: (value: string) => void
   onResolutionChange: (value: string) => void
   onQualityChange: (value: string) => void
+  onOutputFormatChange: (value: string) => void
   onCountChange: (value: NumericInputValue) => void
   onConcurrencyChange: (value: NumericInputValue) => void
   onOpenSettings: () => void
@@ -38,6 +41,7 @@ export function GenerationPanel({
   ratio,
   resolution,
   quality,
+  outputFormat,
   count,
   concurrency,
   uploads,
@@ -50,6 +54,7 @@ export function GenerationPanel({
   onRatioChange,
   onResolutionChange,
   onQualityChange,
+  onOutputFormatChange,
   onCountChange,
   onConcurrencyChange,
   onOpenSettings,
@@ -85,6 +90,7 @@ export function GenerationPanel({
             </div>
             <ImageSpecPicker ratio={ratio} resolution={resolution} onRatioChange={onRatioChange} onResolutionChange={onResolutionChange} />
             <QualityPicker value={quality} onChange={onQualityChange} />
+            <OutputFormatPicker value={outputFormat} onChange={onOutputFormatChange} />
             <label className="composer-mini-field">
               <span>数量</span>
               <input type="number" min={1} max={12} value={count} onChange={(event) => onCountChange(readNumberInput(event.target.value))} />

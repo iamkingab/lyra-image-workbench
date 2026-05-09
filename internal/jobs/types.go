@@ -43,31 +43,32 @@ type Meta struct {
 }
 
 type Job struct {
-	ID          string    `json:"id"`
-	SpaceToken  string    `json:"spaceToken"`
-	Mode        Mode      `json:"mode"`
-	Prompt      string    `json:"prompt"`
-	Ratio       string    `json:"ratio"`
-	Resolution  string    `json:"resolution"`
-	Quality     string    `json:"quality"`
-	Size        string    `json:"size"`
-	Count       int       `json:"count"`
-	Concurrency int       `json:"concurrency"`
-	UploadIDs   []string  `json:"uploadIds,omitempty"`
-	Status      Status    `json:"status"`
-	StatusText  string    `json:"statusText"`
-	StatusCode  string    `json:"statusCode"`
-	Stage       Stage     `json:"stage"`
-	StageText   string    `json:"stageText"`
-	StageCode   string    `json:"stageCode"`
-	Progress    int       `json:"progress"`
-	Results     []Result  `json:"results"`
-	Favorite    bool      `json:"favorite,omitempty"`
-	Error       string    `json:"error,omitempty"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
-	StartedAt   time.Time `json:"startedAt,omitempty"`
-	FinishedAt  time.Time `json:"finishedAt,omitempty"`
+	ID           string    `json:"id"`
+	SpaceToken   string    `json:"spaceToken"`
+	Mode         Mode      `json:"mode"`
+	Prompt       string    `json:"prompt"`
+	Ratio        string    `json:"ratio"`
+	Resolution   string    `json:"resolution"`
+	Quality      string    `json:"quality"`
+	OutputFormat string    `json:"outputFormat"`
+	Size         string    `json:"size"`
+	Count        int       `json:"count"`
+	Concurrency  int       `json:"concurrency"`
+	UploadIDs    []string  `json:"uploadIds,omitempty"`
+	Status       Status    `json:"status"`
+	StatusText   string    `json:"statusText"`
+	StatusCode   string    `json:"statusCode"`
+	Stage        Stage     `json:"stage"`
+	StageText    string    `json:"stageText"`
+	StageCode    string    `json:"stageCode"`
+	Progress     int       `json:"progress"`
+	Results      []Result  `json:"results"`
+	Favorite     bool      `json:"favorite,omitempty"`
+	Error        string    `json:"error,omitempty"`
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
+	StartedAt    time.Time `json:"startedAt,omitempty"`
+	FinishedAt   time.Time `json:"finishedAt,omitempty"`
 }
 
 type Result struct {
@@ -91,14 +92,15 @@ type Result struct {
 }
 
 type CreateRequest struct {
-	Mode        Mode     `json:"mode"`
-	Prompt      string   `json:"prompt"`
-	Ratio       string   `json:"ratio"`
-	Resolution  string   `json:"resolution"`
-	Quality     string   `json:"quality"`
-	Count       int      `json:"count"`
-	Concurrency int      `json:"concurrency"`
-	UploadIDs   []string `json:"uploadIds"`
+	Mode         Mode     `json:"mode"`
+	Prompt       string   `json:"prompt"`
+	Ratio        string   `json:"ratio"`
+	Resolution   string   `json:"resolution"`
+	Quality      string   `json:"quality"`
+	OutputFormat string   `json:"outputFormat"`
+	Count        int      `json:"count"`
+	Concurrency  int      `json:"concurrency"`
+	UploadIDs    []string `json:"uploadIds"`
 }
 
 type Stats struct {

@@ -162,7 +162,8 @@ textarea { resize: vertical; line-height: 1.55; }
 .ratio-icon { border: 1.7px solid currentColor; border-radius: 3px; display: block; }
 .resolution-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .quality-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.resolution-btn, .quality-btn {
+.format-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.resolution-btn, .quality-btn, .format-btn {
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--muted);
@@ -171,7 +172,7 @@ textarea { resize: vertical; line-height: 1.55; }
   font-size: 13px;
   font-weight: 800;
 }
-.resolution-btn.active, .quality-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+.resolution-btn.active, .quality-btn.active, .format-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
 .generate-submit { width: 100%; margin-top: 16px; padding: 14px; }
 
 .size-selector-button {
@@ -1164,10 +1165,12 @@ button:not(.primary) { background: var(--surface-soft); color: #1e3a8a; border: 
   border-radius: 8px;
   font-size: 12px;
 }
-.gallery-shell .quality-list {
+.gallery-shell .quality-list,
+.gallery-shell .format-list {
   gap: 6px;
 }
-.gallery-shell .quality-btn {
+.gallery-shell .quality-btn,
+.gallery-shell .format-btn {
   min-height: 31px;
   border-radius: 9px;
   padding: 6px 5px;
@@ -1239,6 +1242,10 @@ button:not(.primary) { background: var(--surface-soft); color: #1e3a8a; border: 
   width: 184px;
   flex: none;
 }
+.gallery-shell .composer-control-left .format-list {
+  width: 138px;
+  flex: none;
+}
 .gallery-shell .composer-mini-field {
   width: 70px;
   display: grid;
@@ -1265,6 +1272,7 @@ button:not(.primary) { background: var(--surface-soft); color: #1e3a8a; border: 
 }
 .gallery-shell .mode-tabs button.active,
 .gallery-shell .quality-btn.active,
+.gallery-shell .format-btn.active,
 .gallery-shell .resolution-btn.active,
 .gallery-shell .ratio-btn.active {
   background: var(--primary) !important;
@@ -1304,7 +1312,8 @@ button:not(.primary) { background: var(--surface-soft); color: #1e3a8a; border: 
   .gallery-shell .composer-control-left,
   .gallery-shell .composer-control-left .mode-tabs,
   .gallery-shell .composer-control-left .size-selector-button,
-  .gallery-shell .composer-control-left .quality-list {
+  .gallery-shell .composer-control-left .quality-list,
+  .gallery-shell .composer-control-left .format-list {
     width: 100%;
   }
   .gallery-shell .composer-control-left .quality-list {

@@ -178,6 +178,7 @@ function TaskGalleryCard({ task, active, favorite, selected, onSelect, onToggleS
         <div className="gallery-tags">
           <span>{task.mode === 'image-to-image' ? '图生图' : '文生图'}</span>
           <span>质量 {qualityLabel(task.quality)}</span>
+          <span>格式 {outputFormatLabel(task.outputFormat)}</span>
           <span>{task.statusText} / {task.statusCode}</span>
           {hasError ? <span className="warn">含失败</span> : null}
         </div>
@@ -234,6 +235,7 @@ function filterTasks(tasks: Task[], query: string, statusFilter: TaskFilter, fav
       task.ratio,
       task.resolution,
       task.quality,
+      task.outputFormat,
       task.size,
     ].join(' ').toLowerCase().includes(q)
   })
@@ -250,6 +252,11 @@ function isFinal(task: Task) {
 function qualityLabel(value?: string) {
   const labels: Record<string, string> = { auto: '自动', low: '低', medium: '中', high: '高' }
   return value ? labels[value] || value : '自动'
+}
+
+function outputFormatLabel(value?: string) {
+  const labels: Record<string, string> = { png: 'PNG', jpeg: 'JPG', jpg: 'JPG', webp: 'WEBP' }
+  return value ? labels[value] || value.toUpperCase() : 'PNG'
 }
 
 function formatElapsed(task: Task) {

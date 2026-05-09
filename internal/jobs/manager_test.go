@@ -35,29 +35,33 @@ func TestManagerCreateReturnsQueuedAndCompletesInBackground(t *testing.T) {
 		if payload["n"].(float64) != 1 {
 			t.Fatalf("count should be split into n=1 calls, got body %+v", payload)
 		}
+		if payload["output_format"] != "jpeg" {
+			t.Fatalf("output_format should be jpeg, got body %+v", payload)
+		}
 		_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]string{{
 			"b64_json":       base64.StdEncoding.EncodeToString([]byte("image")),
 			"revised_prompt": "revised cat",
 			"size":           "1024x1024",
 			"quality":        "high",
-			"output_format":  "png",
+			"output_format":  "jpeg",
 		}}})
 	}))
 	defer server.Close()
 	env := newManagerTestEnv(t, server.URL+"/v1")
 
 	created, err := env.manager.Create(env.token, CreateRequest{
-		Mode:        ModeTextToImage,
-		Prompt:      "cat",
-		Ratio:       "1:1",
-		Resolution:  "standard",
-		Count:       2,
-		Concurrency: 1,
+		Mode:         ModeTextToImage,
+		Prompt:       "cat",
+		Ratio:        "1:1",
+		Resolution:   "standard",
+		OutputFormat: "jpg",
+		Count:        2,
+		Concurrency:  1,
 	})
 	if err != nil {
 		t.Fatalf("Create() error = %v", err)
 	}
-	if created.Status != StatusQueued || created.Progress != 0 {
+	if created.Status != StatusQueued || created.Progress != 0 || created.OutputFormat != "jpeg" {
 		t.Fatalf("Create() should return queued snapshot, got %+v", created)
 	}
 
@@ -69,7 +73,7 @@ func TestManagerCreateReturnsQueuedAndCompletesInBackground(t *testing.T) {
 		if !result.OK || result.ImageURL == "" {
 			t.Fatalf("unexpected result: %+v", result)
 		}
-		if result.RevisedPrompt != "revised cat" || result.ActualSize != "1024x1024" || result.ActualQuality != "high" || result.OutputFormat != "png" {
+		if result.RevisedPrompt != "revised cat" || result.ActualSize != "1024x1024" || result.ActualQuality != "high" || result.OutputFormat != "jpeg" {
 			t.Fatalf("unexpected result metadata: %+v", result)
 		}
 	}

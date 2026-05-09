@@ -108,21 +108,22 @@ func (m *Manager) Create(spaceToken string, req CreateRequest) (Job, error) {
 		return Job{}, err
 	}
 	job := Job{
-		ID:          id,
-		SpaceToken:  spaceToken,
-		Mode:        req.Mode,
-		Prompt:      strings.TrimSpace(req.Prompt),
-		Ratio:       normalizeRatio(req.Ratio),
-		Resolution:  normalizeResolution(req.Resolution),
-		Quality:     normalizeQuality(req.Quality),
-		Size:        imageSize(normalizeRatio(req.Ratio), normalizeResolution(req.Resolution)),
-		Count:       clamp(req.Count, 1, 12, 1),
-		Concurrency: clamp(req.Concurrency, 1, 0, 1),
-		UploadIDs:   append([]string{}, req.UploadIDs...),
-		Progress:    0,
-		Results:     []Result{},
-		CreatedAt:   now,
-		UpdatedAt:   now,
+		ID:           id,
+		SpaceToken:   spaceToken,
+		Mode:         req.Mode,
+		Prompt:       strings.TrimSpace(req.Prompt),
+		Ratio:        normalizeRatio(req.Ratio),
+		Resolution:   normalizeResolution(req.Resolution),
+		Quality:      normalizeQuality(req.Quality),
+		OutputFormat: normalizeOutputFormat(req.OutputFormat),
+		Size:         imageSize(normalizeRatio(req.Ratio), normalizeResolution(req.Resolution)),
+		Count:        clamp(req.Count, 1, 12, 1),
+		Concurrency:  clamp(req.Concurrency, 1, 0, 1),
+		UploadIDs:    append([]string{}, req.UploadIDs...),
+		Progress:     0,
+		Results:      []Result{},
+		CreatedAt:    now,
+		UpdatedAt:    now,
 	}
 	ApplyStatus(&job, StatusQueued)
 	ApplyStage(&job, StageQueued)
@@ -230,7 +231,7 @@ func (m *Manager) Retry(spaceToken string, id string) (Job, error) {
 	if !ok {
 		return Job{}, errors.New("任务不存在")
 	}
-	return m.Create(spaceToken, CreateRequest{Mode: old.Mode, Prompt: old.Prompt, Ratio: old.Ratio, Resolution: old.Resolution, Quality: old.Quality, Count: old.Count, Concurrency: old.Concurrency, UploadIDs: old.UploadIDs})
+	return m.Create(spaceToken, CreateRequest{Mode: old.Mode, Prompt: old.Prompt, Ratio: old.Ratio, Resolution: old.Resolution, Quality: old.Quality, OutputFormat: old.OutputFormat, Count: old.Count, Concurrency: old.Concurrency, UploadIDs: old.UploadIDs})
 }
 
 func (m *Manager) Cancel(spaceToken string, id string) (Job, error) {
@@ -408,7 +409,7 @@ func (m *Manager) generateOne(ctx context.Context, spaceToken string, jobID stri
 		}
 	})
 	m.publish(jobID, "progress", eventPayload(job))
-	image, err := m.newapi.Generate(ctx, newapi.Request{Mode: string(job.Mode), BaseURL: admin.NewAPIBaseURL, APIKey: spaceCfg.APIKey, Model: config.DefaultModel, Prompt: job.Prompt, Size: job.Size, Quality: job.Quality, TimeoutSec: admin.TimeoutSec, InputImages: inputs})
+	image, err := m.newapi.Generate(ctx, newapi.Request{Mode: string(job.Mode), BaseURL: admin.NewAPIBaseURL, APIKey: spaceCfg.APIKey, Model: config.DefaultModel, Prompt: job.Prompt, Size: job.Size, Quality: job.Quality, OutputFormat: job.OutputFormat, TimeoutSec: admin.TimeoutSec, InputImages: inputs})
 	if err != nil {
 		return withElapsed(NewResult(index, StatusFailed, err.Error()), started)
 	}
@@ -533,6 +534,17 @@ func normalizeQuality(value string) string {
 		return value
 	default:
 		return "auto"
+	}
+}
+
+func normalizeOutputFormat(value string) string {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "jpg", "jpeg":
+		return "jpeg"
+	case "png", "webp":
+		return strings.ToLower(strings.TrimSpace(value))
+	default:
+		return "png"
 	}
 }
 
