@@ -6,12 +6,14 @@ import (
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/config"
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/settings"
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/spaces"
+	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/uploads"
 )
 
 type Dependencies struct {
 	Config   config.Config
 	Settings *settings.FileStore
 	Spaces   *spaces.FileStore
+	Uploads  *uploads.Store
 }
 
 func NewRouter(deps Dependencies) http.Handler {
@@ -20,6 +22,7 @@ func NewRouter(deps Dependencies) http.Handler {
 	adminConfig := NewAdminConfigHandler(deps.Settings)
 	statusMetadata := NewStatusMetadataHandler()
 	spaceHandler := NewSpaceHandler(deps.Spaces)
+	uploadHandler := NewUploadHandler(deps.Uploads)
 
 	mux.HandleFunc("GET /api/health", health.ServeHTTP)
 	mux.HandleFunc("GET /api/admin/config", adminConfig.Get)
@@ -28,6 +31,7 @@ func NewRouter(deps Dependencies) http.Handler {
 	mux.HandleFunc("POST /api/spaces/session", spaceHandler.CreateSession)
 	mux.HandleFunc("GET /api/spaces/session", spaceHandler.CurrentSession)
 	mux.HandleFunc("DELETE /api/spaces/session", spaceHandler.DeleteSession)
+	mux.HandleFunc("POST /api/uploads/reference", uploadHandler.SaveReferenceImages)
 
 	return withCommonHeaders(mux)
 }
