@@ -144,7 +144,25 @@ gpt-image-2
 
 接口返回 `modelLocked: true`，前端只展示模型，不提供编辑。后续再增加模型列表、模型测试和默认模型选择。
 
-## 7. 图生图第一版纳入范围
+## 7. 空间内 API Key
+
+用户进入个人空间后，通过同源接口保存自己的 NewAPI Key：
+
+```text
+GET  /api/config
+POST /api/config
+Header: X-Space-Token: ...
+```
+
+设计规则：
+
+- API Key 按个人空间保存到 `data/spaces/{token}/config.json`。
+- 前端只提交 Key 给 Go 后端，不直接请求 NewAPI。
+- `GET /api/config` 不返回明文 Key，只返回 `apiKeySet`、`apiKeyPreview` 和更新时间。
+- 后续创建文生图/图生图任务时，Go 后端从当前空间读取 Key，再请求内网 NewAPI。
+- 管理页 `/admin` 设置的是全局 NewAPI URL 和 600 秒超时；个人空间 `/api/config` 设置的是用户 Key。
+
+## 8. 图生图第一版纳入范围
 
 第一版同时做文生图和图生图。图生图闭环：
 
@@ -162,7 +180,7 @@ gpt-image-2
 
 不走 PiXhost，不让前端拿参考图远程 URL，不把参考图上传第三方。
 
-## 8. 后续所有任务接口必须套空间
+## 9. 后续所有任务接口必须套空间
 
 这些接口后续必须要求 `X-Space-Token`：
 
