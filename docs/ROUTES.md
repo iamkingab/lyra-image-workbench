@@ -21,7 +21,7 @@
 
 - 保留 `GET /api/health`：用于前端探活。
 - 新增 `POST /api/spaces/session` / `GET /api/spaces/session` / `DELETE /api/spaces/session`：创建、恢复、退出个人空间。
-- 新增 `GET /api/config` / `POST /api/config`：按个人空间保存用户 Image-2 Key，只返回掩码不返回明文。
+- 新增 `GET /api/config` / `POST /api/config`：按个人空间保存用户 Image-2 Key、默认并发和 PiXhost 自动上传开关，只返回掩码不返回明文。
 - 新增 `POST /api/uploads/reference`：第一版图生图参考图上传到本机空间目录。
 - 保留 `POST /api/background-tasks`：创建本机后台生图任务，立即返回任务 ID。
 - 保留 `GET /api/background-tasks`：查看本机历史任务。
@@ -29,10 +29,10 @@
 - 新增 `GET /api/background-tasks/:id/events`：本机 SSE 假流式进度、心跳、结果推送。
 - 保留 `POST /api/background-tasks/:id/retry`：失败任务重试。
 - 保留 `GET /api/background-tasks/:id/images/:index`：读取本机落盘图片。
+- 新增 `POST /api/background-tasks/:id/images/:index/pixhost`：由 Go 后端把本机结果图上传到 PiXhost，并把图床 URL 写回任务结果。
 - 保留 `GET /api/stats`：本机统计。
-- 保留兼容 `POST /api/generate-stream`：创建本机任务并在同一个同源连接里推送 SSE。
-- 保留兼容 `GET /api/image-proxy?url=...`：由 Go 后端拉取远程图片，避免 CORS。
-- 暂不实现 `POST /api/upload-pixhost`：本地版默认保存到本机 `outputs/`，不主动上传第三方图床。
+- 不保留旧版前台直连 NewAPI；本地版统一通过后台任务执行。
+- PiXhost 上传作为结果操作存在，不影响本机 `outputs/` 原图保存。
 
 ## 稳定性原则
 

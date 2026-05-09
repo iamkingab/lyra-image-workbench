@@ -13,18 +13,24 @@ import (
 )
 
 type Config struct {
-	APIKey    string `json:"apiKey,omitempty"`
-	UpdatedAt string `json:"updatedAt"`
+	APIKey             string `json:"apiKey,omitempty"`
+	DefaultConcurrency int    `json:"defaultConcurrency,omitempty"`
+	AutoUploadPixhost  bool   `json:"autoUploadPixhost,omitempty"`
+	UpdatedAt          string `json:"updatedAt"`
 }
 
 type PublicConfig struct {
-	APIKeySet     bool   `json:"apiKeySet"`
-	APIKeyPreview string `json:"apiKeyPreview"`
-	UpdatedAt     string `json:"updatedAt"`
+	APIKeySet          bool   `json:"apiKeySet"`
+	APIKeyPreview      string `json:"apiKeyPreview"`
+	DefaultConcurrency int    `json:"defaultConcurrency"`
+	AutoUploadPixhost  bool   `json:"autoUploadPixhost"`
+	UpdatedAt          string `json:"updatedAt"`
 }
 
 type Update struct {
-	APIKey *string `json:"apiKey"`
+	APIKey             *string `json:"apiKey"`
+	DefaultConcurrency *int    `json:"defaultConcurrency"`
+	AutoUploadPixhost  *bool   `json:"autoUploadPixhost"`
 }
 
 type Store struct {
@@ -52,7 +58,7 @@ func (s *Store) Get(spaceToken string) (Config, error) {
 	data, err := os.ReadFile(file)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return Config{}, nil
+			return normalize(Config{}), nil
 		}
 		return Config{}, err
 	}
@@ -73,6 +79,12 @@ func (s *Store) Update(spaceToken string, update Update) (PublicConfig, error) {
 	}
 	if update.APIKey != nil {
 		cfg.APIKey = strings.TrimSpace(*update.APIKey)
+	}
+	if update.DefaultConcurrency != nil {
+		cfg.DefaultConcurrency = clamp(*update.DefaultConcurrency, 1, 4, 1)
+	}
+	if update.AutoUploadPixhost != nil {
+		cfg.AutoUploadPixhost = *update.AutoUploadPixhost
 	}
 	cfg.UpdatedAt = time.Now().Format(time.RFC3339)
 	cfg = normalize(cfg)
@@ -111,16 +123,32 @@ func (s *Store) configPath(spaceToken string) (string, error) {
 
 func normalize(cfg Config) Config {
 	cfg.APIKey = strings.TrimSpace(cfg.APIKey)
+	cfg.DefaultConcurrency = clamp(cfg.DefaultConcurrency, 1, 4, 1)
 	cfg.UpdatedAt = strings.TrimSpace(cfg.UpdatedAt)
 	return cfg
 }
 
 func toPublic(cfg Config) PublicConfig {
 	return PublicConfig{
-		APIKeySet:     cfg.APIKey != "",
-		APIKeyPreview: maskSecret(cfg.APIKey),
-		UpdatedAt:     cfg.UpdatedAt,
+		APIKeySet:          cfg.APIKey != "",
+		APIKeyPreview:      maskSecret(cfg.APIKey),
+		DefaultConcurrency: cfg.DefaultConcurrency,
+		AutoUploadPixhost:  cfg.AutoUploadPixhost,
+		UpdatedAt:          cfg.UpdatedAt,
 	}
+}
+
+func clamp(value int, min int, max int, fallback int) int {
+	if value == 0 {
+		value = fallback
+	}
+	if value < min {
+		return min
+	}
+	if value > max {
+		return max
+	}
+	return value
 }
 
 func maskSecret(value string) string {

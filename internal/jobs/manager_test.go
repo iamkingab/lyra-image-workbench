@@ -170,6 +170,15 @@ func TestManagerRecoverRequeuesQueuedAndInterruptsRunning(t *testing.T) {
 	}
 }
 
+func TestImageSizeKeepsAutoRatioAsAuto(t *testing.T) {
+	if got := imageSize("auto", "4k"); got != "自动" {
+		t.Fatalf("imageSize(auto, 4k) = %q", got)
+	}
+	if got := imageSize("16:9", "4k"); got != "3840x2160" {
+		t.Fatalf("imageSize(16:9, 4k) = %q", got)
+	}
+}
+
 type managerTestEnv struct {
 	token       string
 	store       *Store

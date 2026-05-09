@@ -1,24 +1,32 @@
 ﻿import { type FormEvent, useEffect, useState } from 'react'
-import { getUserConfig, saveApiKey } from '../api/config'
+import { getUserConfig, saveUserConfig } from '../api/config'
 import type { UserConfig } from '../types'
 
 export function SettingsPanel({ onReady, onConfig }: { onReady?: (ready: boolean) => void; onConfig?: (config: UserConfig) => void }) {
   const [config, setConfig] = useState<UserConfig | null>(null)
   const [apiKey, setApiKey] = useState('')
+  const [defaultConcurrency, setDefaultConcurrency] = useState(1)
+  const [autoUploadPixhost, setAutoUploadPixhost] = useState(false)
   const [message, setMessage] = useState('')
   useEffect(() => {
     void getUserConfig().then((cfg) => {
       setConfig(cfg)
+      setDefaultConcurrency(cfg.defaultConcurrency || 1)
+      setAutoUploadPixhost(Boolean(cfg.autoUploadPixhost))
       onReady?.(cfg.apiKeySet)
       onConfig?.(cfg)
     })
   }, [onReady, onConfig])
   async function submit(event: FormEvent) {
     event.preventDefault()
-    const cfg = await saveApiKey(apiKey)
+    const payload: { apiKey?: string; defaultConcurrency: number; autoUploadPixhost: boolean } = { defaultConcurrency, autoUploadPixhost }
+    if (apiKey.trim()) payload.apiKey = apiKey
+    const cfg = await saveUserConfig(payload)
     setConfig(cfg)
+    setDefaultConcurrency(cfg.defaultConcurrency || 1)
+    setAutoUploadPixhost(Boolean(cfg.autoUploadPixhost))
     setApiKey('')
-    setMessage('Image-2 Key 已保存到当前个人空间')
+    setMessage(apiKey.trim() ? 'Image-2 Key 和默认并发已保存' : '默认并发已保存')
     onReady?.(cfg.apiKeySet)
     onConfig?.(cfg)
   }
@@ -32,7 +40,16 @@ export function SettingsPanel({ onReady, onConfig }: { onReady?: (ready: boolean
       <div className="status-line">当前：{config?.apiKeySet ? `已设置 ${config.apiKeyPreview}` : '未设置'}</div>
       <form onSubmit={submit} className="inline-form">
         <input value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="填写 Image-2 Key" />
-        <button type="submit">保存 Image-2 Key</button>
+        <label className="field">
+          <span>默认并发</span>
+          <input type="number" min={1} max={4} value={defaultConcurrency} onChange={(e) => setDefaultConcurrency(Number(e.target.value))} />
+        </label>
+        <label className="check-row">
+          <input type="checkbox" checked={autoUploadPixhost} onChange={(e) => setAutoUploadPixhost(e.target.checked)} />
+          <span>生成成功后自动上传到 PiXhost 图床</span>
+        </label>
+        <small className="muted">自动上传可关闭；关闭后仍可在结果图悬浮时手动点击“上传图床”。PiXhost 单张最大 10MB。</small>
+        <button type="submit">保存设置</button>
       </form>
       {message ? <small className="ok">{message}</small> : null}
     </section>

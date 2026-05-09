@@ -73,7 +73,8 @@ export function getQualityLabel(quality: string) {
 }
 
 export function getAvailableRatios(resolution: string): readonly AspectRatio[] {
-  return resolution === 'auto' ? RATIOS : FIXED_RATIOS
+  void resolution
+  return RATIOS
 }
 
 export function normalizeRatioForResolution(ratio: string, resolution: string): AspectRatio {

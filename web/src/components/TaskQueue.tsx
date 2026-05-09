@@ -10,7 +10,7 @@ export function TaskQueue({ tasks, activeId, onSelect, onRetry, onCancel }: { ta
           <strong>{task.statusText} / {task.status} / {task.statusCode}</strong>
           <p>{task.stageText} / {task.stage} / {task.stageCode}</p>
           <progress value={task.progress} max={100} />
-          <small>{task.mode} · {task.size} · {task.results.filter((r) => r.ok).length}/{task.count}</small>
+          <small>{task.mode === 'image-to-image' ? '图生图' : '文生图'} · {task.size === '自动' ? '自动尺寸' : task.size} · {task.results.filter((r) => r.ok).length}/{task.count}</small>
           <div className="task-actions">
             <button type="button" onClick={(e) => { e.stopPropagation(); onRetry(task.id) }}>重试</button>
             <button type="button" onClick={(e) => { e.stopPropagation(); onCancel(task.id) }}>取消</button>

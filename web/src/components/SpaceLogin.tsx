@@ -20,8 +20,8 @@ export function SpaceLogin({ onSession }: { onSession: (session: SpaceSession) =
         <div className="brand login-brand">
           <div className="brand-mark">AI</div>
           <div>
-            <p className="eyebrow">Personal Space</p>
-            <h1>AI Image Generate</h1>
+            <p className="eyebrow">个人空间</p>
+            <h1>本机生图工作台</h1>
           </div>
         </div>
         <h2>进入个人空间</h2>

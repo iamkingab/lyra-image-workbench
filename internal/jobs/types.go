@@ -70,16 +70,19 @@ type Job struct {
 }
 
 type Result struct {
-	Index      int    `json:"index"`
-	OK         bool   `json:"ok"`
-	Status     Status `json:"status"`
-	StatusText string `json:"statusText"`
-	StatusCode string `json:"statusCode"`
-	ImageURL   string `json:"imageUrl,omitempty"`
-	Mime       string `json:"mime,omitempty"`
-	Bytes      int64  `json:"bytes,omitempty"`
-	Error      string `json:"error,omitempty"`
-	ElapsedMs  int64  `json:"elapsedMs,omitempty"`
+	Index          int    `json:"index"`
+	OK             bool   `json:"ok"`
+	Status         Status `json:"status"`
+	StatusText     string `json:"statusText"`
+	StatusCode     string `json:"statusCode"`
+	ImageURL       string `json:"imageUrl,omitempty"`
+	RemoteURL      string `json:"remoteUrl,omitempty"`
+	RemoteThumbURL string `json:"remoteThumbUrl,omitempty"`
+	UploadError    string `json:"uploadError,omitempty"`
+	Mime           string `json:"mime,omitempty"`
+	Bytes          int64  `json:"bytes,omitempty"`
+	Error          string `json:"error,omitempty"`
+	ElapsedMs      int64  `json:"elapsedMs,omitempty"`
 }
 
 type CreateRequest struct {

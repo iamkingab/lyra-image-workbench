@@ -156,9 +156,9 @@ Header: X-Space-Token: ...
 
 设计规则：
 
-- Image-2 Key 按个人空间保存到 `data/spaces/{token}/config.json`，首版接口字段仍兼容使用 `apiKey`。
+- Image-2 Key、默认并发和 PiXhost 自动上传开关按个人空间保存到 `data/spaces/{token}/config.json`，首版 Key 字段仍兼容使用 `apiKey`。
 - 前端只提交 Image-2 Key 给 Go 后端，不直接请求 NewAPI。
-- `GET /api/config` 不返回明文 Key，只返回 `apiKeySet`、`apiKeyPreview` 和更新时间。
+- `GET /api/config` 不返回明文 Key，只返回 `apiKeySet`、`apiKeyPreview`、`defaultConcurrency`、`autoUploadPixhost` 和更新时间。
 - 后续创建文生图/图生图任务时，Go 后端从当前空间读取 Image-2 Key，再请求内网 NewAPI。
 - 管理页 `/admin` 设置的是全局 NewAPI URL 和 600 秒超时；个人空间 `/api/config` 设置的是 Image-2 Key，后续 Gemini Banana 等模型会独立扩展。
 

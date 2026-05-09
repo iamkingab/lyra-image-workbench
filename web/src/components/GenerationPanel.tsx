@@ -65,12 +65,6 @@ export function GenerationPanel({
 
   return (
     <aside className="generation-panel">
-      <div className="section-head">
-        <p className="eyebrow">Generate</p>
-        <h2>生成设置</h2>
-        <p className="muted">配置从上到下完成后提交；后端会在本机持续执行任务。</p>
-      </div>
-
       <section className="form-section key-summary">
         <div className="section-title">
           <span>Image-2 Key</span>
@@ -117,6 +111,13 @@ export function GenerationPanel({
           <div className="field">
             <span>质量</span>
             <QualityPicker value={quality} onChange={onQualityChange} />
+          </div>
+        </section>
+
+        <section className="form-section request-section">
+          <div className="section-title">
+            <span>请求</span>
+            <small>一次提交一个请求</small>
           </div>
           <div className="grid-2">
             <label className="field">

@@ -40,6 +40,23 @@ func TestConfigAPIDoesNotReturnRawAPIKey(t *testing.T) {
 	}
 }
 
+func TestConfigAPISavesDefaultConcurrency(t *testing.T) {
+	router := newTestRouter(t)
+	token := createTestSession(t, router)
+
+	body := doJSON(t, router, http.MethodPost, "/api/config", token, map[string]any{"defaultConcurrency": 3, "autoUploadPixhost": true})
+	if !strings.Contains(body, `"defaultConcurrency":3`) {
+		t.Fatalf("POST /api/config did not save default concurrency: %s", body)
+	}
+	if !strings.Contains(body, `"autoUploadPixhost":true`) {
+		t.Fatalf("POST /api/config did not save pixhost setting: %s", body)
+	}
+	body = doJSON(t, router, http.MethodGet, "/api/config", token, nil)
+	if !strings.Contains(body, `"defaultConcurrency":3`) || !strings.Contains(body, `"autoUploadPixhost":true`) {
+		t.Fatalf("GET /api/config did not return default concurrency: %s", body)
+	}
+}
+
 func TestAdminConfigAPIUpdatesURLAndTimeout(t *testing.T) {
 	router := newTestRouter(t)
 	adminToken := createAdminToken(t, router)

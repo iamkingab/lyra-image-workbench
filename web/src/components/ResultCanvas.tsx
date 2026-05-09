@@ -1,13 +1,15 @@
+import { useState } from 'react'
 import type { Task, TaskResult } from '../types'
 import { formatBytes } from '../lib/format'
+import { ImagePreviewModal } from './ImagePreviewModal'
 
-export function ResultCanvas({ task }: { task?: Task }) {
+export function ResultCanvas({ task, onUseAsReference, onUploadPixhost }: { task?: Task; onUseAsReference?: (src: string, index: number) => Promise<void>; onUploadPixhost?: (taskId: string, index: number) => Promise<void> }) {
   const okCount = task?.results.filter((item) => item.ok).length || 0
   return (
     <section className="result-canvas">
       <header className="canvas-header">
         <div>
-          <p className="eyebrow">Canvas</p>
+          <p className="eyebrow">结果区</p>
           <h2>生成结果</h2>
           {task ? <p>{task.stageText} / {task.stage} / {task.stageCode} · {task.progress}% · {okCount}/{task.count}</p> : <p>选择或创建一个任务后查看结果。</p>}
         </div>
@@ -23,7 +25,7 @@ export function ResultCanvas({ task }: { task?: Task }) {
         <div className="result-grid">
           {Array.from({ length: task.count }, (_, index) => {
             const result = task.results.find((item) => item.index === index)
-            return <ResultCard key={index} index={index} result={result} />
+            return <ResultCard key={index} task={task} index={index} result={result} onUseAsReference={onUseAsReference} onUploadPixhost={onUploadPixhost} />
           })}
         </div>
       )}
@@ -31,19 +33,140 @@ export function ResultCanvas({ task }: { task?: Task }) {
   )
 }
 
-function ResultCard({ index, result }: { index: number; result?: TaskResult }) {
+function ResultCard({ task, index, result, onUseAsReference, onUploadPixhost }: { task: Task; index: number; result?: TaskResult; onUseAsReference?: (src: string, index: number) => Promise<void>; onUploadPixhost?: (taskId: string, index: number) => Promise<void> }) {
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [notice, setNotice] = useState('')
+
   if (!result) {
     return (
-      <article className="result-card pending">
-        <div className="result-pending">等待生成 #{index + 1}</div>
+      <article className="result-card is-loading">
+        <div className="skeleton">
+          <div className="spinner" />
+          <span>第 {index + 1} 张生成中...</span>
+        </div>
         <footer>排队中 / queued / J100</footer>
       </article>
     )
   }
+
+  const imageUrl = result.ok && result.imageUrl ? result.imageUrl : ''
+  const copyableURL = result.remoteUrl || imageUrl
+
   return (
-    <article className="result-card">
-      {result.ok && result.imageUrl ? <img src={result.imageUrl} alt={`result-${index + 1}`} /> : <div className="result-error">{result.error || result.statusText}</div>}
-      <footer>{result.statusText} / {result.status} / {result.statusCode} · {formatBytes(result.bytes)}</footer>
-    </article>
+    <>
+      <article className={`result-card ${result.ok ? '' : 'is-error'}`}>
+        {imageUrl ? (
+          <>
+            <img src={imageUrl} alt={`生成结果 ${index + 1}`} />
+            <div className="floating-actions">
+              <button type="button" className="zoom-btn" onClick={() => setPreviewOpen(true)} title="放大预览">⛶</button>
+              {result.remoteUrl ? (
+                <button type="button" className="url-copy-btn" onClick={() => void copyURL(result.remoteUrl!, setNotice)}>复制URL</button>
+              ) : (
+                <button type="button" className={`url-copy-btn ${result.uploadError ? 'error' : ''}`} onClick={() => void uploadPixhost(task.id, index, onUploadPixhost, setNotice)}>
+                  {result.uploadError ? '重试上传' : '上传图床'}
+                </button>
+              )}
+            </div>
+            <div className="card-toolbar">
+              <button type="button" onClick={() => void downloadImage(imageUrl, index)}>下载</button>
+              <button type="button" onClick={() => void copyImage(imageUrl, setNotice)}>复制图片</button>
+              <button type="button" onClick={() => void useAsReference(imageUrl, index, onUseAsReference, setNotice)}>作为参考图</button>
+            </div>
+            <small className="card-meta">#{index + 1} · {result.elapsedMs ? `${(result.elapsedMs / 1000).toFixed(1)}s` : '完成'} · {formatBytes(result.bytes)}{result.remoteUrl ? ' · 已上传图床' : result.uploadError ? ` · 图床失败：${result.uploadError}` : ''}</small>
+          </>
+        ) : (
+          <div className="error-card">
+            <strong>第 {index + 1} 张失败</strong>
+            <p>{result.error || result.statusText}</p>
+          </div>
+        )}
+        <footer>{result.statusText} / {result.status} / {result.statusCode}</footer>
+        {notice ? <div className="card-notice">{notice}</div> : null}
+      </article>
+      {previewOpen && imageUrl ? (
+        <ImagePreviewModal
+          src={imageUrl}
+          title={`生成结果 ${index + 1}`}
+          requestedSize={task.size}
+          ratio={task.ratio}
+          bytes={result.bytes}
+          onCopyImage={() => copyImage(imageUrl, setNotice)}
+          onCopyUrl={() => copyURL(copyableURL, setNotice)}
+          onDownload={() => downloadImage(imageUrl, index)}
+          onUseAsReference={() => useAsReference(imageUrl, index, onUseAsReference, setNotice)}
+          onClose={() => setPreviewOpen(false)}
+        />
+      ) : null}
+    </>
   )
+}
+
+async function uploadPixhost(taskId: string, index: number, onUploadPixhost: ((taskId: string, index: number) => Promise<void>) | undefined, setNotice: (value: string) => void) {
+  if (!onUploadPixhost) return
+  try {
+    flash(setNotice, '正在上传图床...')
+    await onUploadPixhost(taskId, index)
+    flash(setNotice, '图床上传成功')
+  } catch (err) {
+    flash(setNotice, err instanceof Error ? err.message : '图床上传失败')
+  }
+}
+
+async function useAsReference(src: string, index: number, onUseAsReference: ((src: string, index: number) => Promise<void>) | undefined, setNotice: (value: string) => void) {
+  if (!onUseAsReference) return
+  try {
+    await onUseAsReference(src, index)
+    flash(setNotice, '已加入参考图')
+  } catch (err) {
+    flash(setNotice, err instanceof Error ? err.message : '加入参考图失败')
+  }
+}
+
+async function copyURL(src: string, setNotice: (value: string) => void) {
+  const url = new URL(src, window.location.origin).href
+  try {
+    await navigator.clipboard.writeText(url)
+    flash(setNotice, '链接已复制')
+  } catch {
+    flash(setNotice, '复制失败')
+  }
+}
+
+async function copyImage(src: string, setNotice: (value: string) => void) {
+  try {
+    const response = await fetch(src)
+    const blob = await response.blob()
+    await navigator.clipboard.write([
+      new ClipboardItem({ [blob.type || 'image/png']: blob }),
+    ])
+    flash(setNotice, '图片已复制')
+  } catch {
+    await copyURL(src, setNotice)
+  }
+}
+
+async function downloadImage(src: string, index: number) {
+  const response = await fetch(src)
+  const blob = await response.blob()
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `image-2-${Date.now()}-${index + 1}.${extensionFromMime(blob.type)}`
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
+function extensionFromMime(mime: string) {
+  if (mime.includes('jpeg')) return 'jpg'
+  if (mime.includes('webp')) return 'webp'
+  if (mime.includes('gif')) return 'gif'
+  return 'png'
+}
+
+function flash(setNotice: (value: string) => void, value: string) {
+  setNotice(value)
+  window.setTimeout(() => setNotice(''), 1600)
 }

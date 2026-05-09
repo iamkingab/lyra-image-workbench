@@ -78,6 +78,20 @@ func (h TaskHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "job": job})
 }
 
+func (h TaskHandler) UploadPixhost(w http.ResponseWriter, r *http.Request) {
+	idx, err := strconv.Atoi(r.PathValue("index"))
+	if err != nil || idx < 0 {
+		writeError(w, http.StatusBadRequest, "TASK_IMAGE_INDEX_INVALID", "图片序号无效")
+		return
+	}
+	job, result, err := h.manager.UploadResultToPixhost(r.Context(), r.Header.Get("X-Space-Token"), r.PathValue("id"), idx)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "PIXHOST_UPLOAD_FAILED", err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "job": job, "result": result})
+}
+
 func (h TaskHandler) Events(w http.ResponseWriter, r *http.Request) {
 	spaceToken := r.Header.Get("X-Space-Token")
 	jobID := r.PathValue("id")

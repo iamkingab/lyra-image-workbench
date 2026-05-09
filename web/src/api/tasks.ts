@@ -29,6 +29,11 @@ export async function retryTask(id: string) {
   return data.job
 }
 
+export async function uploadTaskImageToPixhost(id: string, index: number) {
+  const data = await requestJson<{ ok: boolean; job: Task; result: Task['results'][number] }>(`/api/background-tasks/${encodeURIComponent(id)}/images/${index}/pixhost`, { method: 'POST' })
+  return data
+}
+
 export async function streamTaskEvents(id: string, onEvent: (event: TaskEvent) => void, signal: AbortSignal) {
   const response = await fetch(`/api/background-tasks/${encodeURIComponent(id)}/events`, {
     headers: { 'X-Space-Token': getSpaceToken() },

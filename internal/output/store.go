@@ -87,6 +87,14 @@ func (s *Store) Resolve(spaceToken string, date string, fileName string) (string
 	return path, MimeFromFileName(fileName), nil
 }
 
+func (s *Store) ResolveURL(outputURL string) (string, string, error) {
+	parts := strings.Split(strings.TrimPrefix(outputURL, "/outputs/"), "/")
+	if len(parts) != 3 {
+		return "", "", errors.New("输出图片地址无效")
+	}
+	return s.Resolve(parts[0], parts[1], parts[2])
+}
+
 func ExtensionFromMime(mime string) string {
 	switch NormalizeMime(mime) {
 	case "image/jpeg":

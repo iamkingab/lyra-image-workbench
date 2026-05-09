@@ -1,5 +1,5 @@
 ﻿import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
-import { cancelTask, createTask, listTasks, retryTask } from '../api/tasks'
+import { cancelTask, createTask, listTasks, retryTask, uploadTaskImageToPixhost } from '../api/tasks'
 import { clearSpaceToken, getSpaceToken } from '../api/client'
 import { getCurrentSpace, leaveSpace } from '../api/spaces'
 import { deleteReferenceUpload, listReferenceUploads, uploadReferenceImages } from '../api/uploads'
@@ -79,6 +79,7 @@ export function WorkbenchPage() {
   const applyUserConfig = useCallback((cfg: UserConfig) => {
     setKeyReady(cfg.apiKeySet)
     setKeyPreview(cfg.apiKeyPreview)
+    setConcurrency(cfg.defaultConcurrency || 1)
   }, [])
 
   async function submit(event: FormEvent) {
@@ -107,6 +108,23 @@ export function WorkbenchPage() {
   async function handleDeleteUpload(id: string) {
     await deleteReferenceUpload(id)
     await refreshUploads()
+  }
+
+  async function handleUseResultAsReference(src: string, index: number) {
+    const response = await fetch(src, { cache: 'no-store' })
+    if (!response.ok) throw new Error(`读取结果图失败：HTTP ${response.status}`)
+    const blob = await response.blob()
+    const file = new File([blob], `result-reference-${index + 1}.${extensionFromMime(blob.type)}`, { type: blob.type || 'image/png' })
+    await uploadReferenceImages([file])
+    await refreshUploads()
+    setMode('image-to-image')
+    setMessage('已作为图生图参考图')
+  }
+
+  async function handleUploadPixhost(taskId: string, index: number) {
+    const data = await uploadTaskImageToPixhost(taskId, index)
+    upsertTask(data.job)
+    setMessage(data.result.remoteUrl ? 'PiXhost 图床上传成功' : 'PiXhost 图床上传完成')
   }
 
   async function logout() {
@@ -155,10 +173,17 @@ export function WorkbenchPage() {
           onDeleteUpload={handleDeleteUpload}
           onSubmit={submit}
         />
-        <ResultCanvas task={activeTask} />
+        <ResultCanvas task={activeTask} onUseAsReference={handleUseResultAsReference} onUploadPixhost={handleUploadPixhost} />
         <TaskTimeline tasks={tasks} activeId={activeId || undefined} onSelect={setActiveId} onRetry={(id) => void retryTask(id).then(upsertTask)} onCancel={(id) => void cancelTask(id).then(upsertTask)} />
       </main>
       {settingsOpen ? <SettingsWindow onClose={() => setSettingsOpen(false)} onConfig={applyUserConfig} /> : null}
     </div>
   )
+}
+
+function extensionFromMime(mime: string) {
+  if (mime.includes('jpeg')) return 'jpg'
+  if (mime.includes('webp')) return 'webp'
+  if (mime.includes('gif')) return 'gif'
+  return 'png'
 }

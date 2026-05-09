@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/events"
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/newapi"
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/output"
+	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/pixhost"
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/settings"
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/spaceconfig"
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/uploads"
@@ -27,6 +29,7 @@ type Manager struct {
 	uploads     *uploads.Store
 	output      *output.Store
 	newapi      *newapi.Client
+	pixhost     *pixhost.Client
 	queue       chan jobRef
 	mu          sync.Mutex
 	cancels     map[string]context.CancelFunc
@@ -46,6 +49,7 @@ func NewManager(store *Store, hub *events.Hub, settingsStore *settings.FileStore
 		uploads:     uploadStore,
 		output:      outputStore,
 		newapi:      newapiClient,
+		pixhost:     pixhost.NewClient(),
 		queue:       make(chan jobRef, 256),
 		cancels:     make(map[string]context.CancelFunc),
 	}
@@ -139,6 +143,70 @@ func (m *Manager) Get(spaceToken string, id string) (Job, bool, error) {
 }
 
 func (m *Manager) Stats(spaceToken string) (Stats, error) { return m.store.Stats(spaceToken) }
+
+func (m *Manager) UploadResultToPixhost(ctx context.Context, spaceToken string, id string, index int) (Job, Result, error) {
+	job, ok, err := m.store.Get(spaceToken, id)
+	if err != nil {
+		return Job{}, Result{}, err
+	}
+	if !ok {
+		return Job{}, Result{}, errors.New("任务不存在")
+	}
+	resultIndex := -1
+	for i := range job.Results {
+		if job.Results[i].Index == index {
+			resultIndex = i
+			break
+		}
+	}
+	if resultIndex < 0 || !job.Results[resultIndex].OK || strings.TrimSpace(job.Results[resultIndex].ImageURL) == "" {
+		return Job{}, Result{}, errors.New("任务图片不存在")
+	}
+	current := job.Results[resultIndex]
+	if current.RemoteURL != "" {
+		return job, current, nil
+	}
+	path, mime, err := m.output.ResolveURL(current.ImageURL)
+	if err != nil {
+		return Job{}, Result{}, err
+	}
+	uploaded, err := m.pixhost.UploadFile(ctx, path, mime, "image-2-"+id+"-"+strconv.Itoa(index+1)+"."+output.ExtensionFromMime(mime))
+	if err != nil {
+		var updated Result
+		job, _, _ = m.store.Update(spaceToken, id, func(j *Job) {
+			for i := range j.Results {
+				if j.Results[i].Index == index {
+					j.Results[i].UploadError = err.Error()
+					updated = j.Results[i]
+					break
+				}
+			}
+		})
+		if updated.Index == 0 && index != 0 {
+			updated = current
+			updated.UploadError = err.Error()
+		}
+		m.publish(id, "result", map[string]any{"result": updated, "job": job})
+		return job, updated, err
+	}
+	var updated Result
+	job, _, err = m.store.Update(spaceToken, id, func(j *Job) {
+		for i := range j.Results {
+			if j.Results[i].Index == index {
+				j.Results[i].RemoteURL = uploaded.ShowURL
+				j.Results[i].RemoteThumbURL = uploaded.ThumbURL
+				j.Results[i].UploadError = ""
+				updated = j.Results[i]
+				break
+			}
+		}
+	})
+	if err != nil {
+		return Job{}, Result{}, err
+	}
+	m.publish(id, "result", map[string]any{"result": updated, "job": job})
+	return job, updated, nil
+}
 
 func (m *Manager) Retry(spaceToken string, id string) (Job, error) {
 	old, ok, err := m.store.Get(spaceToken, id)
@@ -265,7 +333,14 @@ func (m *Manager) runImages(ctx context.Context, spaceToken string, jobID string
 			defer wg.Done()
 			sem <- struct{}{}
 			defer func() { <-sem }()
-			results[idx] = m.generateOne(ctx, spaceToken, jobID, idx)
+			result := m.generateOne(ctx, spaceToken, jobID, idx)
+			results[idx] = result
+			job, ok, _ := m.store.Update(spaceToken, jobID, func(j *Job) {
+				upsertResult(j, result)
+			})
+			if ok {
+				m.publish(jobID, "result", map[string]any{"result": result, "job": job})
+			}
 		}()
 	}
 	wg.Wait()
@@ -320,8 +395,25 @@ func (m *Manager) generateOne(ctx context.Context, spaceToken string, jobID stri
 	result.ImageURL = saved.URL
 	result.Mime = saved.Mime
 	result.Bytes = saved.Bytes
-	m.publish(jobID, "result", map[string]any{"result": result})
+	if spaceCfg.AutoUploadPixhost {
+		if uploaded, err := m.pixhost.UploadFile(ctx, saved.Path, saved.Mime, saved.FileName); err == nil {
+			result.RemoteURL = uploaded.ShowURL
+			result.RemoteThumbURL = uploaded.ThumbURL
+		} else {
+			result.UploadError = err.Error()
+		}
+	}
 	return result
+}
+
+func upsertResult(job *Job, result Result) {
+	for i := range job.Results {
+		if job.Results[i].Index == result.Index {
+			job.Results[i] = result
+			return
+		}
+	}
+	job.Results = append(job.Results, result)
 }
 
 func (m *Manager) fakeProgress(spaceToken string, jobID string, done <-chan struct{}) {
@@ -409,11 +501,8 @@ func normalizeQuality(value string) string {
 }
 
 func imageSize(ratio string, resolution string) string {
-	if ratio == "auto" && resolution == "auto" {
-		return "自动"
-	}
 	if ratio == "auto" {
-		ratio = "1:1"
+		return "自动"
 	}
 	if resolution == "auto" {
 		resolution = "standard"

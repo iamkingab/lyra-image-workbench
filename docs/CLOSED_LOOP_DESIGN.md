@@ -32,7 +32,7 @@
 | --- | --- | --- |
 | 前端访问边界 | 容易误解成前端硬编码 localhost 或请求 NewAPI | 前端只使用同源相对路径 `/api/...`；生产由 Go 托管前端静态资源 |
 | NewAPI 地址 | “内置 URL”来源未明确 | 编译默认值 + 环境变量覆盖 + 本机配置文件覆盖；UI 默认不展示完整 URL，只显示“内置线路”状态 |
-| Image-2 Key 保存 | 浏览器保存 Key 不符合目标 | Image-2 Key 只通过 `POST /api/config` 交给 Go；Go 本机保存，`GET /api/config` 只返回 `apiKeySet` 和掩码 |
+| Image-2 Key 保存 | 浏览器保存 Key 不符合目标 | Image-2 Key 只通过 `POST /api/config` 交给 Go；Go 本机保存，`GET /api/config` 只返回 `apiKeySet` 和掩码，同时返回默认并发 |
 | 10 分钟任务 | 如果任务继承请求上下文，前端断开会取消 | job runner 使用独立后台 context；SSE/查询连接绝不能控制任务生命周期 |
 | 上游超时 | Go 默认 HTTP 没有清晰超时策略 | NewAPI 单次请求默认 600 秒超时，可在 `/admin` 设置；服务端 `WriteTimeout=0` 支持 SSE |
 | Cloudflare 524 | 本机假流式无法修复上游 524 | 本项目假设 Go 通过内网直连 NewAPI，不经过会 100 秒熔断的同步代理；若上游仍 524，需要 NewAPI 提供异步任务或非 CF 长任务入口 |
@@ -152,11 +152,11 @@ POST /api/config
   "config": {
     "apiKeySet": true,
     "apiKeyPreview": "sk-...abcd",
-    "baseUrlMode": "builtin",
-    "model": "gpt-image-2",
-    "defaultTimeoutSec": 600,
-    "maxCount": 12,
-    "maxConcurrency": 4
+    "apiKeySet": true,
+    "apiKeyPreview": "sk-...abcd",
+    "defaultConcurrency": 2,
+    "autoUploadPixhost": false,
+    "updatedAt": "2026-05-10T00:00:00+08:00"
   }
 }
 ```
@@ -166,9 +166,12 @@ POST /api/config
 ```json
 {
   "apiKey": "...",
-  第一版模型固定为 `gpt-image-2`，暂不允许请求体覆盖模型
+  "defaultConcurrency": 2,
+  "autoUploadPixhost": false
 }
 ```
+
+第一版模型固定为 `gpt-image-2`，暂不允许请求体覆盖模型。
 
 ### 参考图上传
 

@@ -7,9 +7,13 @@ export async function getUserConfig() {
 }
 
 export async function saveApiKey(apiKey: string) {
+  return saveUserConfig({ apiKey })
+}
+
+export async function saveUserConfig(payload: { apiKey?: string; defaultConcurrency?: number; autoUploadPixhost?: boolean }) {
   const data = await requestJson<{ ok: boolean; config: UserConfig }>('/api/config', {
     method: 'POST',
-    body: JSON.stringify({ apiKey }),
+    body: JSON.stringify(payload),
   })
   return data.config
 }

@@ -11,6 +11,8 @@ export interface SpaceSession {
 export interface UserConfig {
   apiKeySet: boolean
   apiKeyPreview: string
+  defaultConcurrency: number
+  autoUploadPixhost: boolean
   updatedAt: string
 }
 
@@ -51,6 +53,9 @@ export interface TaskResult {
   statusText: string
   statusCode: string
   imageUrl?: string
+  remoteUrl?: string
+  remoteThumbUrl?: string
+  uploadError?: string
   mime?: string
   bytes?: number
   error?: string

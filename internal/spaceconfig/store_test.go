@@ -43,3 +43,41 @@ func TestStoreMasksAPIKeyInPublicConfig(t *testing.T) {
 		t.Fatalf("private API key was not trimmed/persisted: %q", private.APIKey)
 	}
 }
+
+func TestStorePersistsDefaultConcurrency(t *testing.T) {
+	spaceStore, err := spaces.NewFileStore(t.TempDir())
+	if err != nil {
+		t.Fatalf("NewFileStore() error = %v", err)
+	}
+	session, err := spaceStore.CreateOrOpenByPassword("R7!Green#Vault$2026")
+	if err != nil {
+		t.Fatalf("CreateOrOpenByPassword() error = %v", err)
+	}
+	store := NewStore(spaceStore)
+
+	defaultPublic, err := store.Public(session.Token)
+	if err != nil {
+		t.Fatalf("Public() error = %v", err)
+	}
+	if defaultPublic.DefaultConcurrency != 1 {
+		t.Fatalf("default concurrency = %d", defaultPublic.DefaultConcurrency)
+	}
+
+	value := 4
+	public, err := store.Update(session.Token, Update{DefaultConcurrency: &value})
+	if err != nil {
+		t.Fatalf("Update() error = %v", err)
+	}
+	if public.DefaultConcurrency != 4 {
+		t.Fatalf("DefaultConcurrency = %d", public.DefaultConcurrency)
+	}
+
+	tooLarge := 99
+	public, err = store.Update(session.Token, Update{DefaultConcurrency: &tooLarge})
+	if err != nil {
+		t.Fatalf("Update(tooLarge) error = %v", err)
+	}
+	if public.DefaultConcurrency != 4 {
+		t.Fatalf("DefaultConcurrency should be clamped to 4, got %d", public.DefaultConcurrency)
+	}
+}
