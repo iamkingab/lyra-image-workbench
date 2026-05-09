@@ -10,8 +10,10 @@ import (
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/config"
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/events"
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/jobs"
+	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/llm"
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/newapi"
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/output"
+	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/prompttools"
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/server"
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/settings"
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/spaceconfig"
@@ -42,6 +44,8 @@ func main() {
 	eventHub := events.NewHub()
 	jobStore := jobs.NewStore(spaceStore)
 	jobManager := jobs.NewManager(jobStore, eventHub, settingsStore, spaceConfigStore, uploadStore, outputStore, newapi.NewClient())
+	promptStore := prompttools.NewStore(spaceStore)
+	promptService := prompttools.NewService(promptStore, settingsStore, spaceConfigStore, uploadStore, jobManager, outputStore, llm.NewClient())
 	if err := jobManager.Recover(); err != nil {
 		log.Printf("恢复任务状态失败：%v", err)
 	}
@@ -55,6 +59,7 @@ func main() {
 		Uploads:     uploadStore,
 		Jobs:        jobManager,
 		Output:      outputStore,
+		PromptTools: promptService,
 	})
 	httpServer := server.New(cfg, router)
 

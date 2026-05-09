@@ -7,6 +7,7 @@ import (
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/config"
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/jobs"
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/output"
+	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/prompttools"
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/settings"
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/spaceconfig"
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/spaces"
@@ -22,6 +23,7 @@ type Dependencies struct {
 	Uploads     *uploads.Store
 	Jobs        *jobs.Manager
 	Output      *output.Store
+	PromptTools *prompttools.Service
 }
 
 func NewRouter(deps Dependencies) http.Handler {
@@ -34,6 +36,7 @@ func NewRouter(deps Dependencies) http.Handler {
 	spaceHandler := NewSpaceHandler(deps.Spaces)
 	uploadHandler := NewUploadHandler(deps.Uploads)
 	taskHandler := NewTaskHandler(deps.Jobs, deps.Output)
+	promptToolsHandler := NewPromptToolsHandler(deps.PromptTools)
 	outputHandler := NewOutputHandler(deps.Output)
 	staticHandler := NewStaticHandler(deps.Config.WebDir)
 
@@ -64,6 +67,10 @@ func NewRouter(deps Dependencies) http.Handler {
 	mux.HandleFunc("POST /api/background-tasks/{id}/images/{index}/pixhost", taskHandler.UploadPixhost)
 	mux.HandleFunc("GET /api/background-tasks/{id}/images/{index}", taskHandler.Image)
 	mux.HandleFunc("GET /api/stats", taskHandler.Stats)
+	mux.HandleFunc("POST /api/prompt-tools/text-to-prompt", promptToolsHandler.TextToPrompt)
+	mux.HandleFunc("POST /api/prompt-tools/image-to-prompt", promptToolsHandler.ImageToPrompt)
+	mux.HandleFunc("GET /api/prompt-tools/history", promptToolsHandler.History)
+	mux.HandleFunc("DELETE /api/prompt-tools/history/{id}", promptToolsHandler.Delete)
 	mux.HandleFunc("GET /outputs/{space}/{date}/{file}", outputHandler.Serve)
 	mux.HandleFunc("GET /", staticHandler.Serve)
 

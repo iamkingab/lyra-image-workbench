@@ -9,11 +9,13 @@ import (
 )
 
 const (
-	DefaultNewAPIBaseURL = "http://127.0.0.1:3000/v1"
-	DefaultModel         = "gpt-image-2"
-	DefaultTimeoutSec    = 600
-	MinTimeoutSec        = 60
-	MaxTimeoutSec        = 3600
+	DefaultNewAPIBaseURL    = "http://127.0.0.1:3000/v1"
+	DefaultModel            = "gpt-image-2"
+	DefaultPromptModel      = "gpt-5.5"
+	DefaultPromptTimeoutSec = 180
+	DefaultTimeoutSec       = 600
+	MinTimeoutSec           = 60
+	MaxTimeoutSec           = 3600
 )
 
 type Config struct {

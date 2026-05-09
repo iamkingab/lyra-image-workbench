@@ -14,8 +14,10 @@ import (
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/config"
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/events"
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/jobs"
+	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/llm"
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/newapi"
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/output"
+	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/prompttools"
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/settings"
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/spaceconfig"
 	"github.com/y08lin4/image-Workbench-Localhost-Version/internal/spaces"
@@ -151,6 +153,8 @@ func newTestRouter(t *testing.T) http.Handler {
 	}
 	jobStore := jobs.NewStore(spaceStore)
 	jobManager := jobs.NewManager(jobStore, events.NewHub(), settingsStore, spaceConfigStore, uploadStore, outputStore, newapi.NewClient())
+	promptStore := prompttools.NewStore(spaceStore)
+	promptService := prompttools.NewService(promptStore, settingsStore, spaceConfigStore, uploadStore, jobManager, outputStore, llm.NewClient())
 
 	return NewRouter(Dependencies{
 		Config:      cfg,
@@ -161,6 +165,7 @@ func newTestRouter(t *testing.T) http.Handler {
 		Uploads:     uploadStore,
 		Jobs:        jobManager,
 		Output:      outputStore,
+		PromptTools: promptService,
 	})
 }
 
