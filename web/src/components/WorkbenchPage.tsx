@@ -1,5 +1,5 @@
 ﻿import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
-import { cancelTask, createTask, listTasks, retryTask, setTaskFavorite, uploadTaskImageToPixhost } from '../api/tasks'
+import { cancelTask, createTask, deleteTask, listTasks, retryTask, setTaskFavorite, uploadTaskImageToPixhost } from '../api/tasks'
 import { clearSpaceToken, getSpaceToken } from '../api/client'
 import { getCurrentSpace, leaveSpace } from '../api/spaces'
 import { deleteReferenceUpload, listReferenceUploads, uploadReferenceImages } from '../api/uploads'
@@ -192,6 +192,20 @@ export function WorkbenchPage() {
     setMessage('已取消任务')
   }
 
+  async function handleDelete(id: string) {
+    const task = tasks.find((item) => item.id === id)
+    if (!window.confirm(`确认删除这条生成记录？${task?.results?.some((result) => result.ok) ? '本地图片文件会先保留。' : ''}`)) return
+    await deleteTask(id)
+    setTasks((prev) => prev.filter((item) => item.id !== id))
+    setDetailId((current) => (current === id ? null : current))
+    setActiveId((current) => {
+      if (current !== id) return current
+      const next = tasks.find((item) => item.id !== id)
+      return next?.id || null
+    })
+    setMessage('已删除任务记录')
+  }
+
   async function logout() {
     await leaveSpace()
     setSession(null)
@@ -226,6 +240,7 @@ export function WorkbenchPage() {
           onSelect={handleSelectTask}
           onRetry={(id) => void handleRetry(id)}
           onCancel={(id) => void handleCancel(id)}
+          onDelete={(id) => void handleDelete(id)}
           onReuse={handleReuseTask}
           onToggleFavorite={(id) => void toggleFavorite(id)}
         />
@@ -264,6 +279,7 @@ export function WorkbenchPage() {
           onClose={() => setDetailId(null)}
           onRetry={(id) => void handleRetry(id)}
           onCancel={(id) => void handleCancel(id)}
+          onDelete={(id) => void handleDelete(id)}
           onReuse={handleReuseTask}
           onToggleFavorite={(id) => void toggleFavorite(id)}
           onUseAsReference={handleUseResultAsReference}

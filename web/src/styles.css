@@ -811,6 +811,15 @@ button:not(.primary) { background: var(--surface-soft); color: #1e3a8a; border: 
   border-radius: 10px;
   font-size: 12px;
 }
+.danger-text {
+  color: #ff9b9b;
+  border-color: rgba(255, 115, 115, .42);
+}
+.danger-text:hover {
+  color: #ffd2d2;
+  border-color: rgba(255, 139, 139, .7);
+  background: rgba(255, 92, 92, .12);
+}
 .gallery-empty {
   min-height: 360px;
   display: grid;

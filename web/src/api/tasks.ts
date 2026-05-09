@@ -24,6 +24,11 @@ export async function cancelTask(id: string) {
   return data.job
 }
 
+export async function deleteTask(id: string) {
+  const data = await requestJson<{ ok: boolean; job: Task }>(`/api/background-tasks/${encodeURIComponent(id)}`, { method: 'DELETE' })
+  return data.job
+}
+
 export async function retryTask(id: string) {
   const data = await requestJson<{ ok: boolean; job: Task }>(`/api/background-tasks/${encodeURIComponent(id)}/retry`, { method: 'POST' })
   return data.job

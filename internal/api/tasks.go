@@ -95,6 +95,15 @@ func (h TaskHandler) Favorite(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "job": job})
 }
 
+func (h TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	job, err := h.manager.Delete(r.Header.Get("X-Space-Token"), r.PathValue("id"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "TASK_DELETE_FAILED", err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "job": job})
+}
+
 func (h TaskHandler) UploadPixhost(w http.ResponseWriter, r *http.Request) {
 	idx, err := strconv.Atoi(r.PathValue("index"))
 	if err != nil || idx < 0 {

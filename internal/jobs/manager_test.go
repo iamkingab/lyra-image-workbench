@@ -202,6 +202,26 @@ func TestManagerSetFavoritePersists(t *testing.T) {
 	}
 }
 
+func TestManagerDeleteRemovesPersistedJob(t *testing.T) {
+	env := newManagerTestEnvWithoutManager(t, "http://127.0.0.1:1")
+	env.manager = NewManager(env.store, events.NewHub(), env.settings, env.spaceConfig, env.uploads, env.output, newapi.NewClient())
+	job := newPersistedJob(env.token, "img_delete", StatusSucceeded, StageSucceeded)
+	if err := env.store.Save(job); err != nil {
+		t.Fatalf("Save(job) error = %v", err)
+	}
+
+	deleted, err := env.manager.Delete(env.token, job.ID)
+	if err != nil {
+		t.Fatalf("Delete() error = %v", err)
+	}
+	if deleted.ID != job.ID {
+		t.Fatalf("deleted job mismatch: %+v", deleted)
+	}
+	if _, ok, err := env.store.Get(env.token, job.ID); err != nil || ok {
+		t.Fatalf("job still exists after delete: ok=%v err=%v", ok, err)
+	}
+}
+
 func TestImageSizeKeepsAutoRatioAsAuto(t *testing.T) {
 	if got := imageSize("auto", "4k"); got != "自动" {
 		t.Fatalf("imageSize(auto, 4k) = %q", got)

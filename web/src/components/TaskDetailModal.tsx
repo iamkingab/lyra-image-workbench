@@ -7,6 +7,7 @@ type Props = {
   onClose: () => void
   onRetry: (id: string) => void
   onCancel: (id: string) => void
+  onDelete: (id: string) => void
   onReuse: (task: Task) => void
   onToggleFavorite: (id: string) => void
   onUseAsReference?: (src: string, index: number) => Promise<void>
@@ -19,6 +20,7 @@ export function TaskDetailModal({
   onClose,
   onRetry,
   onCancel,
+  onDelete,
   onReuse,
   onToggleFavorite,
   onUseAsReference,
@@ -39,6 +41,7 @@ export function TaskDetailModal({
             {isFinal(task)
               ? <button type="button" onClick={() => onRetry(task.id)}>重试</button>
               : <button type="button" onClick={() => onCancel(task.id)}>取消</button>}
+            <button type="button" className="danger-text" onClick={() => onDelete(task.id)}>删除</button>
             <button type="button" className="detail-close" onClick={onClose} aria-label="关闭详情">×</button>
           </div>
         </header>

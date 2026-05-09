@@ -15,6 +15,7 @@ type Props = {
   onSelect: (task: Task) => void
   onRetry: (id: string) => void
   onCancel: (id: string) => void
+  onDelete: (id: string) => void
   onReuse: (task: Task) => void
   onToggleFavorite: (id: string) => void
 }
@@ -43,6 +44,7 @@ export function TaskGallery({
   onSelect,
   onRetry,
   onCancel,
+  onDelete,
   onReuse,
   onToggleFavorite,
 }: Props) {
@@ -91,6 +93,7 @@ export function TaskGallery({
               onSelect={() => onSelect(task)}
               onRetry={() => onRetry(task.id)}
               onCancel={() => onCancel(task.id)}
+              onDelete={() => onDelete(task.id)}
               onReuse={() => onReuse(task)}
               onToggleFavorite={() => onToggleFavorite(task.id)}
             />
@@ -101,13 +104,14 @@ export function TaskGallery({
   )
 }
 
-function TaskGalleryCard({ task, active, favorite, onSelect, onRetry, onCancel, onReuse, onToggleFavorite }: {
+function TaskGalleryCard({ task, active, favorite, onSelect, onRetry, onCancel, onDelete, onReuse, onToggleFavorite }: {
   task: Task
   active: boolean
   favorite: boolean
   onSelect: () => void
   onRetry: () => void
   onCancel: () => void
+  onDelete: () => void
   onReuse: () => void
   onToggleFavorite: () => void
 }) {
@@ -154,6 +158,7 @@ function TaskGalleryCard({ task, active, favorite, onSelect, onRetry, onCancel, 
           {isFinal(task)
             ? <button type="button" onClick={(event) => { event.stopPropagation(); onRetry() }}>重试</button>
             : <button type="button" onClick={(event) => { event.stopPropagation(); onCancel() }}>取消</button>}
+          <button type="button" className="danger-text" onClick={(event) => { event.stopPropagation(); onDelete() }}>删除</button>
           <button type="button" onClick={(event) => { event.stopPropagation(); onSelect() }}>详情</button>
         </div>
       </div>

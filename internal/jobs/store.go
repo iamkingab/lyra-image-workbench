@@ -65,6 +65,27 @@ func (s *Store) Update(spaceToken string, id string, mutate func(*Job)) (Job, bo
 	}
 	return Job{}, false, nil
 }
+
+func (s *Store) Delete(spaceToken string, id string) (Job, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	jobs, err := s.loadLocked(spaceToken)
+	if err != nil {
+		return Job{}, false, err
+	}
+	for i := range jobs {
+		if jobs[i].ID == id {
+			deleted := jobs[i]
+			jobs = append(jobs[:i], jobs[i+1:]...)
+			if err := s.saveLocked(spaceToken, jobs); err != nil {
+				return Job{}, false, err
+			}
+			return deleted, true, nil
+		}
+	}
+	return Job{}, false, nil
+}
+
 func (s *Store) Get(spaceToken string, id string) (Job, bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

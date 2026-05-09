@@ -258,6 +258,24 @@ func (m *Manager) Cancel(spaceToken string, id string) (Job, error) {
 	return job, nil
 }
 
+func (m *Manager) Delete(spaceToken string, id string) (Job, error) {
+	m.mu.Lock()
+	if cancel := m.cancels[id]; cancel != nil {
+		cancel()
+		delete(m.cancels, id)
+	}
+	m.mu.Unlock()
+	job, ok, err := m.store.Delete(spaceToken, id)
+	if err != nil {
+		return Job{}, err
+	}
+	if !ok {
+		return Job{}, errors.New("任务不存在")
+	}
+	m.publish(id, "done", map[string]any{"deleted": true, "job": job})
+	return job, nil
+}
+
 func (m *Manager) Subscribe(jobID string) (<-chan events.Event, func()) {
 	return m.hub.Subscribe(jobID)
 }
