@@ -21,6 +21,7 @@ type Config struct {
 	Port                 int
 	Addr                 string
 	DataDir              string
+	WebDir               string
 	BuiltinNewAPIBaseURL string
 	DefaultModel         string
 	DefaultTimeoutSec    int
@@ -37,6 +38,7 @@ func Load() Config {
 		Port:                 port,
 		Addr:                 fmt.Sprintf("%s:%d", host, port),
 		DataDir:              filepath.Clean(getenv("LOCAL_IMAGE_DATA_DIR", "data")),
+		WebDir:               filepath.Clean(getenv("LOCAL_IMAGE_WEB_DIR", filepath.Join("web", "dist"))),
 		BuiltinNewAPIBaseURL: getenv("NEWAPI_BASE_URL", DefaultNewAPIBaseURL),
 		DefaultModel:         DefaultModel,
 		DefaultTimeoutSec:    getenvBoundedInt("NEWAPI_TIMEOUT_SEC", DefaultTimeoutSec, MinTimeoutSec, MaxTimeoutSec),

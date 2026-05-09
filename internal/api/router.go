@@ -32,6 +32,7 @@ func NewRouter(deps Dependencies) http.Handler {
 	uploadHandler := NewUploadHandler(deps.Uploads)
 	taskHandler := NewTaskHandler(deps.Jobs, deps.Output)
 	outputHandler := NewOutputHandler(deps.Output)
+	staticHandler := NewStaticHandler(deps.Config.WebDir)
 
 	mux.HandleFunc("GET /api/health", health.ServeHTTP)
 	mux.HandleFunc("GET /api/admin/config", adminConfig.Get)
@@ -54,6 +55,7 @@ func NewRouter(deps Dependencies) http.Handler {
 	mux.HandleFunc("GET /api/background-tasks/{id}/images/{index}", taskHandler.Image)
 	mux.HandleFunc("GET /api/stats", taskHandler.Stats)
 	mux.HandleFunc("GET /outputs/{space}/{date}/{file}", outputHandler.Serve)
+	mux.HandleFunc("GET /", staticHandler.Serve)
 
 	return withCommonHeaders(mux)
 }

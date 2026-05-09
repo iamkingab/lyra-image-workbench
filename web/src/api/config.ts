@@ -1,0 +1,15 @@
+﻿import { requestJson } from './client'
+import type { UserConfig } from '../types'
+
+export async function getUserConfig() {
+  const data = await requestJson<{ ok: boolean; config: UserConfig }>('/api/config')
+  return data.config
+}
+
+export async function saveApiKey(apiKey: string) {
+  const data = await requestJson<{ ok: boolean; config: UserConfig }>('/api/config', {
+    method: 'POST',
+    body: JSON.stringify({ apiKey }),
+  })
+  return data.config
+}

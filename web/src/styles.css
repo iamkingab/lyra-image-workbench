@@ -3,45 +3,59 @@
   background: #eef2ff;
   font-family: Inter, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
 }
-
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; }
-
-.app-shell {
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 24px;
+a { color: #4f46e5; text-decoration: none; font-weight: 700; }
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; }
+input, select, textarea {
+  width: 100%; border: 1px solid #d6d9e6; border-radius: 12px; padding: 11px 12px; background: #fff; color: #111827;
 }
-
-.hero-card {
-  width: min(920px, 100%);
-  border: 1px solid rgba(99, 102, 241, .22);
-  border-radius: 28px;
-  background: rgba(255, 255, 255, .86);
-  box-shadow: 0 30px 80px rgba(79, 70, 229, .18);
-  padding: clamp(28px, 6vw, 64px);
+textarea { resize: vertical; }
+.center-shell { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+.app-shell { min-height: 100vh; padding: 18px; }
+.panel {
+  border: 1px solid rgba(99,102,241,.18); border-radius: 20px; background: rgba(255,255,255,.92);
+  box-shadow: 0 18px 55px rgba(79,70,229,.10); padding: 18px; margin-bottom: 14px;
 }
-
-.eyebrow {
-  margin: 0 0 12px;
-  color: #4f46e5;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: .12em;
-  text-transform: uppercase;
+.login-panel, .admin-panel { width: min(680px, 100%); padding: clamp(24px, 6vw, 54px); }
+.eyebrow { margin: 0 0 10px; color: #4f46e5; font-size: 12px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+h1, h2 { margin: 0 0 12px; }
+h1 { font-size: clamp(28px, 5vw, 48px); }
+h2 { font-size: 18px; }
+.muted { color: #64748b; line-height: 1.65; }
+.primary, button {
+  border: 0; border-radius: 12px; padding: 10px 14px; background: #4f46e5; color: white; font-weight: 800;
 }
-
-h1 {
-  margin: 0 0 16px;
-  font-size: clamp(34px, 8vw, 72px);
-  line-height: .98;
+button:not(.primary) { background: #eef2ff; color: #3730a3; }
+.error, .ok { margin-top: 10px; padding: 10px 12px; border-radius: 12px; }
+.error { background: #fef2f2; color: #991b1b; }
+.ok { background: #f0fdf4; color: #166534; }
+.status-line { padding: 10px 0; color: #334155; }
+.inline-form, .task-form { display: grid; gap: 10px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.topbar {
+  display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 18px; margin-bottom: 16px;
+  border-radius: 22px; background: rgba(255,255,255,.9); border: 1px solid rgba(99,102,241,.16);
 }
-
-p {
-  margin: 0;
-  max-width: 680px;
-  color: #475569;
-  font-size: clamp(16px, 2.8vw, 20px);
-  line-height: 1.75;
+.topbar p { margin: 0; color: #64748b; }
+.topbar nav { display: flex; gap: 10px; align-items: center; }
+.workspace { display: grid; grid-template-columns: 330px minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+.left-col { min-width: 0; }
+.upload-list, .task-panel { display: grid; gap: 10px; }
+.upload-item, .task-card {
+  border: 1px solid #e2e8f0; border-radius: 14px; padding: 12px; background: #fff; display: grid; gap: 6px;
 }
+.upload-item small, .task-card small { color: #64748b; }
+.task-card.active { outline: 2px solid #6366f1; }
+.task-actions { display: flex; gap: 8px; }
+progress { width: 100%; height: 10px; accent-color: #4f46e5; }
+.results-panel { min-height: 72vh; }
+.result-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+.result-card { border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; background: #fff; }
+.result-card img { width: 100%; display: block; aspect-ratio: 1; object-fit: cover; background: #f8fafc; }
+.result-card footer { padding: 10px; color: #475569; font-size: 13px; }
+.result-error { min-height: 220px; display: grid; place-items: center; color: #991b1b; background: #fef2f2; padding: 16px; text-align: center; }
+.admin-panel label { display: grid; gap: 8px; margin: 14px 0; font-weight: 700; color: #334155; }
+@media (max-width: 1100px) { .workspace { grid-template-columns: 1fr; } .results-panel { min-height: auto; } }
+@media (max-width: 620px) { .app-shell { padding: 10px; } .topbar { flex-direction: column; align-items: flex-start; } .grid-2 { grid-template-columns: 1fr; } }
