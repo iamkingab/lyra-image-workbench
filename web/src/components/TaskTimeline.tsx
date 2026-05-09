@@ -14,8 +14,8 @@ export function TaskTimeline({ tasks, activeId, onSelect, onRetry, onCancel }: {
           <article className={`timeline-item ${task.id === activeId ? 'active' : ''}`} key={task.id} onClick={() => onSelect(task.id)}>
             <div className="timeline-status">
               <strong>{modeLabel(task)} · {sizeLabel(task)} · {task.results.filter((result) => result.ok).length}/{task.count}</strong>
-              <span>{task.statusText} / {task.status} / {task.statusCode}</span>
-              <span>{task.stageText} / {task.stage} / {task.stageCode}</span>
+              <span>{task.statusText} / {task.statusCode}</span>
+              <span>{task.stageText} / {task.stageCode}</span>
             </div>
             <progress value={task.progress} max={100} />
             <small>{ratioLabel(task)} · {resolutionLabel(task)} · 并发 {task.concurrency}</small>
