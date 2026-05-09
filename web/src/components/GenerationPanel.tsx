@@ -70,59 +70,33 @@ export function GenerationPanel({
         </div>
       </section>
 
-      <form onSubmit={onSubmit} className="generation-form">
-        <section className="form-section">
-          <div className="section-title">
-            <span>模式</span>
-            <small>选择输入方式</small>
-          </div>
-          <div className="mode-tabs" role="tablist" aria-label="生成模式">
-            <button type="button" className={mode === 'text-to-image' ? 'active' : ''} onClick={() => onModeChange('text-to-image')}>文生图</button>
-            <button type="button" className={mode === 'image-to-image' ? 'active' : ''} onClick={() => onModeChange('image-to-image')}>图生图</button>
-          </div>
-        </section>
+      <form onSubmit={onSubmit} className="generation-form composer-form">
+        {mode === 'image-to-image' ? <UploadPanel uploads={uploads} onUpload={onUpload} onDelete={onDeleteUpload} /> : null}
 
-        <section className="form-section">
-          <label className="field">
-            <span>提示词</span>
-            <textarea value={prompt} onChange={(event) => onPromptChange(event.target.value)} placeholder="描述你想生成的画面" rows={6} />
-          </label>
-        </section>
+        <label className="composer-prompt">
+          <textarea value={prompt} onChange={(event) => onPromptChange(event.target.value)} placeholder="描述你想生成的图片..." rows={2} />
+        </label>
 
-        <section className="form-section">
-          <div className="section-title">
-            <span>图片规格</span>
-            <small>{ratio === 'auto' ? '自动' : `${resolution} · ${ratio}`}</small>
-          </div>
-          <div className="field">
+        <div className="composer-control-row">
+          <div className="composer-control-left">
+            <div className="mode-tabs" role="tablist" aria-label="生成模式">
+              <button type="button" className={mode === 'text-to-image' ? 'active' : ''} onClick={() => onModeChange('text-to-image')}>文生图</button>
+              <button type="button" className={mode === 'image-to-image' ? 'active' : ''} onClick={() => onModeChange('image-to-image')}>图生图</button>
+            </div>
             <ImageSpecPicker ratio={ratio} resolution={resolution} onRatioChange={onRatioChange} onResolutionChange={onResolutionChange} />
-          </div>
-          <div className="field">
-            <span>质量</span>
             <QualityPicker value={quality} onChange={onQualityChange} />
-          </div>
-        </section>
-
-        <section className="form-section request-section">
-          <div className="section-title">
-            <span>请求</span>
-            <small>一次提交一个请求</small>
-          </div>
-          <div className="grid-2">
-            <label className="field">
+            <label className="composer-mini-field">
               <span>数量</span>
               <input type="number" min={1} max={12} value={count} onChange={(event) => onCountChange(readNumberInput(event.target.value))} />
             </label>
-            <label className="field">
+            <label className="composer-mini-field">
               <span>并发</span>
               <input type="number" min={1} value={concurrency} onChange={(event) => onConcurrencyChange(readNumberInput(event.target.value))} />
             </label>
           </div>
-        </section>
 
-        {mode === 'image-to-image' ? <UploadPanel uploads={uploads} onUpload={onUpload} onDelete={onDeleteUpload} /> : null}
-
-        <button className="primary generate-submit" type="submit">开始生成</button>
+          <button className="primary generate-submit" type="submit">生成</button>
+        </div>
       </form>
 
       {message ? <div className="ok">{message}</div> : null}

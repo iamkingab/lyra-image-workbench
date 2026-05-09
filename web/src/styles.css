@@ -1081,20 +1081,21 @@ button:not(.primary) { background: var(--surface-soft); color: #1e3a8a; border: 
 .composer-dock {
   position: fixed;
   left: 50%;
-  bottom: 12px;
+  bottom: 24px;
   z-index: 35;
-  width: min(880px, calc(100vw - 28px));
+  width: min(896px, calc(100vw - 32px));
   transform: translateX(-50%);
 }
 .gallery-shell .generation-panel {
   position: static;
-  max-height: min(38vh, 360px);
+  max-height: min(58vh, 520px);
   overflow: auto;
-  padding: 10px 12px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, .96);
-  border-color: var(--border-strong);
-  backdrop-filter: blur(14px);
+  padding: 12px 14px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, .84);
+  border-color: rgba(255, 255, 255, .72);
+  box-shadow: 0 8px 30px rgba(15, 23, 42, .08);
+  backdrop-filter: blur(24px);
 }
 .gallery-shell .key-summary { display: none; }
 .gallery-shell .generation-form {
@@ -1191,6 +1192,130 @@ button:not(.primary) { background: var(--surface-soft); color: #1e3a8a; border: 
   padding: 8px 10px;
   border-radius: 10px;
   font-size: 12px;
+}
+
+.gallery-shell .composer-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+}
+.gallery-shell .composer-prompt {
+  display: block;
+}
+.gallery-shell .composer-prompt textarea {
+  min-height: 54px;
+  max-height: 150px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .64);
+  border-color: rgba(226, 232, 240, .82);
+  line-height: 1.55;
+  resize: none;
+}
+.gallery-shell .composer-control-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+.gallery-shell .composer-control-left {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.gallery-shell .composer-control-left .mode-tabs {
+  width: 150px;
+  flex: none;
+}
+.gallery-shell .composer-control-left .size-selector-button {
+  width: 190px;
+  flex: none;
+}
+.gallery-shell .composer-control-left .quality-list {
+  width: 184px;
+  flex: none;
+}
+.gallery-shell .composer-mini-field {
+  width: 70px;
+  display: grid;
+  gap: 3px;
+}
+.gallery-shell .composer-mini-field span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+.gallery-shell .composer-mini-field input {
+  height: 34px;
+  padding: 6px 8px;
+  text-align: center;
+}
+.gallery-shell .composer-control-row .generate-submit {
+  width: 76px;
+  min-height: 42px;
+  flex: none;
+  border-radius: 13px;
+  padding: 0 14px;
+  background: #3b82f6;
+}
+.gallery-shell .mode-tabs button.active,
+.gallery-shell .quality-btn.active,
+.gallery-shell .resolution-btn.active,
+.gallery-shell .ratio-btn.active {
+  background: var(--primary) !important;
+  color: #ffffff !important;
+  border-color: var(--primary) !important;
+}
+.gallery-shell .size-tabs button.active,
+.gallery-shell .size-choice-grid button.active {
+  background: #ffffff !important;
+  color: var(--primary-2) !important;
+  border-color: #bfdbfe !important;
+}
+.gallery-shell .composer-form .upload-section {
+  width: 100%;
+  padding: 0;
+  border: 0;
+}
+.gallery-shell .composer-form .upload-section .section-title {
+  display: none;
+}
+.gallery-shell .composer-form .upload-dropzone {
+  min-height: 46px;
+  padding: 9px;
+  border-radius: 14px;
+}
+.gallery-shell .composer-form .upload-list {
+  margin-top: 6px;
+  max-height: 90px;
+  overflow: auto;
+}
+
+@media (max-width: 760px) {
+  .gallery-shell .composer-control-row {
+    display: grid;
+    gap: 10px;
+  }
+  .gallery-shell .composer-control-left,
+  .gallery-shell .composer-control-left .mode-tabs,
+  .gallery-shell .composer-control-left .size-selector-button,
+  .gallery-shell .composer-control-left .quality-list {
+    width: 100%;
+  }
+  .gallery-shell .composer-control-left .quality-list {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .gallery-shell .composer-mini-field {
+    width: calc(50% - 4px);
+  }
+  .gallery-shell .composer-control-row .generate-submit {
+    width: 100%;
+  }
 }
 
 .task-detail-mask {
