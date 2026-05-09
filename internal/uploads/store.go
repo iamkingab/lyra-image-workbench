@@ -169,6 +169,75 @@ func writeFileAtomic(path string, data []byte, perm os.FileMode) error {
 	return os.Rename(tmp, path)
 }
 
+func (s *Store) ListReferenceImages(spaceToken string) ([]ReferenceImage, error) {
+	spaceDir, err := s.spaces.SpaceDir(spaceToken)
+	if err != nil {
+		return nil, err
+	}
+	uploadDir := filepath.Join(spaceDir, "uploads")
+	entries, err := os.ReadDir(uploadDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return []ReferenceImage{}, nil
+		}
+		return nil, err
+	}
+	items := make([]ReferenceImage, 0)
+	for _, entry := range entries {
+		if entry.IsDir() || filepath.Ext(entry.Name()) != ".json" {
+			continue
+		}
+		item, err := readReferenceMeta(filepath.Join(uploadDir, entry.Name()))
+		if err == nil {
+			items = append(items, item)
+		}
+	}
+	return items, nil
+}
+
+func (s *Store) GetReferenceImage(spaceToken string, id string) (ReferenceImage, string, error) {
+	spaceDir, err := s.spaces.SpaceDir(spaceToken)
+	if err != nil {
+		return ReferenceImage{}, "", err
+	}
+	id = strings.TrimSpace(id)
+	if !regexp.MustCompile(`^ref_[a-f0-9]{24}$`).MatchString(id) {
+		return ReferenceImage{}, "", NewUploadError("REFERENCE_IMAGE_ID_INVALID", "参考图 ID 无效")
+	}
+	uploadDir := filepath.Join(spaceDir, "uploads")
+	item, err := readReferenceMeta(filepath.Join(uploadDir, id+".json"))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return ReferenceImage{}, "", NewUploadError("REFERENCE_IMAGE_NOT_FOUND", "参考图不存在或已删除")
+		}
+		return ReferenceImage{}, "", err
+	}
+	path := filepath.Join(uploadDir, item.FileName)
+	return item, path, nil
+}
+
+func (s *Store) DeleteReferenceImage(spaceToken string, id string) error {
+	item, path, err := s.GetReferenceImage(spaceToken, id)
+	if err != nil {
+		return err
+	}
+	_ = os.Remove(path)
+	_ = os.Remove(filepath.Join(filepath.Dir(path), item.ID+".json"))
+	return nil
+}
+
+func readReferenceMeta(path string) (ReferenceImage, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ReferenceImage{}, err
+	}
+	var item ReferenceImage
+	if err := json.Unmarshal(data, &item); err != nil {
+		return ReferenceImage{}, err
+	}
+	return item, nil
+}
+
 type UploadError struct {
 	Code    string
 	Chinese string
