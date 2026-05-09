@@ -1,5 +1,6 @@
 ﻿import type { Task } from '../types'
 import { formatBytes } from '../lib/format'
+import { errorReasonLabel } from '../lib/errorLabels'
 
 export function ResultGrid({ task }: { task?: Task }) {
   return (
@@ -10,7 +11,7 @@ export function ResultGrid({ task }: { task?: Task }) {
       <div className="result-grid">
         {task?.results.map((result) => (
           <article className="result-card" key={result.index}>
-            {result.ok && result.imageUrl ? <img src={result.imageUrl} alt={`result-${result.index + 1}`} /> : <div className="result-error">{result.error || result.statusText}</div>}
+            {result.ok && result.imageUrl ? <img src={result.imageUrl} alt={`result-${result.index + 1}`} /> : <div className="result-error">{errorReasonLabel(result)}</div>}
             <footer>{result.statusText} / {result.status} / {result.statusCode} · {formatBytes(result.bytes)}</footer>
           </article>
         ))}
@@ -18,3 +19,4 @@ export function ResultGrid({ task }: { task?: Task }) {
     </section>
   )
 }
+

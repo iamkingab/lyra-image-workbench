@@ -237,6 +237,7 @@ function filterTasks(tasks: Task[], query: string, statusFilter: TaskFilter, fav
       task.quality,
       task.outputFormat,
       task.size,
+      ...task.results.flatMap((result) => [result.error, result.errorText, result.errorCode, result.errorEnglish]),
     ].join(' ').toLowerCase().includes(q)
   })
 }

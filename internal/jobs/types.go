@@ -2,6 +2,8 @@ package jobs
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 	"time"
 )
 
@@ -88,6 +90,9 @@ type Result struct {
 	ActualQuality  string `json:"actualQuality,omitempty"`
 	OutputFormat   string `json:"outputFormat,omitempty"`
 	Error          string `json:"error,omitempty"`
+	ErrorText      string `json:"errorText,omitempty"`
+	ErrorCode      string `json:"errorCode,omitempty"`
+	ErrorEnglish   string `json:"errorEnglish,omitempty"`
 	ElapsedMs      int64  `json:"elapsedMs,omitempty"`
 }
 
@@ -129,7 +134,51 @@ func ApplyStage(job *Job, stage Stage) {
 
 func NewResult(index int, status Status, err string) Result {
 	meta := StatusMeta(status)
-	return Result{Index: index, OK: status == StatusSucceeded, Status: status, StatusText: meta.Chinese, StatusCode: meta.Code, Error: err}
+	result := Result{Index: index, OK: status == StatusSucceeded, Status: status, StatusText: meta.Chinese, StatusCode: meta.Code, Error: err}
+	if strings.TrimSpace(err) != "" {
+		errorMeta := ErrorMeta(err)
+		result.ErrorText = errorMeta.Chinese
+		result.ErrorCode = errorMeta.Code
+		result.ErrorEnglish = errorMeta.English
+	}
+	return result
+}
+
+func ErrorMeta(raw string) Meta {
+	raw = strings.TrimSpace(raw)
+	lower := strings.ToLower(raw)
+	if raw == "" {
+		return Meta{}
+	}
+	if strings.Contains(lower, "unexpected eof") {
+		return Meta{"E_UPSTREAM_EOF", "upstream_response_truncated", "上游响应提前结束"}
+	}
+	if lower == "eof" || strings.Contains(lower, "empty response") {
+		return Meta{"E_UPSTREAM_EMPTY", "upstream_empty_response", "上游返回空响应"}
+	}
+	if match := regexp.MustCompile(`(?i)http\s+(\d{3})`).FindStringSubmatch(raw); len(match) == 2 {
+		code := match[1]
+		return Meta{Code: "E_UPSTREAM_HTTP_" + code, English: "upstream_http_" + code, Chinese: "上游接口返回 HTTP " + code}
+	}
+	if strings.Contains(lower, "context deadline exceeded") || strings.Contains(lower, "timeout") {
+		return Meta{"E_UPSTREAM_TIMEOUT", "upstream_timeout", "上游请求超时"}
+	}
+	if strings.Contains(lower, "context canceled") || strings.Contains(raw, "已取消") {
+		return Meta{"E_TASK_CANCELLED", "task_cancelled", "任务已取消"}
+	}
+	if strings.Contains(raw, "没有返回可用图片") || strings.Contains(lower, "no usable image") {
+		return Meta{"E_UPSTREAM_NO_IMAGE", "upstream_no_image", "上游没有返回可用图片"}
+	}
+	if strings.Contains(lower, "invalid character") || strings.Contains(lower, "cannot unmarshal") || strings.Contains(lower, "bad json") {
+		return Meta{"E_UPSTREAM_BAD_JSON", "upstream_bad_json", "上游返回不是有效 JSON"}
+	}
+	if strings.Contains(raw, "保存") || strings.Contains(lower, "permission denied") || strings.Contains(lower, "access is denied") {
+		return Meta{"E_SAVE_IMAGE_FAILED", "save_image_failed", "保存图片失败"}
+	}
+	if strings.Contains(raw, "参考图") {
+		return Meta{"E_REFERENCE_IMAGE", "reference_image_error", "参考图处理失败"}
+	}
+	return Meta{"E_UNKNOWN", "unknown_error", "任务执行失败"}
 }
 
 func StatusMeta(status Status) Meta {

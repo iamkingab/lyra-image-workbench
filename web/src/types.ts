@@ -63,6 +63,9 @@ export interface TaskResult {
   actualQuality?: string
   outputFormat?: string
   error?: string
+  errorText?: string
+  errorCode?: string
+  errorEnglish?: string
   elapsedMs?: number
 }
 

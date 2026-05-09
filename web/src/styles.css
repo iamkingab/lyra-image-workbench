@@ -530,6 +530,7 @@ textarea { resize: vertical; line-height: 1.55; }
 }
 .error-card { min-height: 240px; padding: 18px; display: flex; flex-direction: column; justify-content: center; gap: 8px; color: var(--error); background: #fef2f2; }
 .error-card p { margin: 0; color: #991b1b; }
+.error-card small { color: #7f1d1d; line-height: 1.45; word-break: break-word; }
 
 .timeline-header { padding-bottom: 14px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
 .timeline-header span { display: block; color: var(--muted); font-size: 13px; }

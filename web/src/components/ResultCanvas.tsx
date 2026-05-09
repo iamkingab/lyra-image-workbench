@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Task, TaskResult } from '../types'
 import { formatBytes } from '../lib/format'
+import { errorReasonLabel } from '../lib/errorLabels'
 import { ImagePreviewModal } from './ImagePreviewModal'
 
 export function ResultCanvas({ task, onUseAsReference, onUploadPixhost }: { task?: Task; onUseAsReference?: (src: string, index: number) => Promise<void>; onUploadPixhost?: (taskId: string, index: number) => Promise<void> }) {
@@ -106,7 +107,8 @@ function ResultCard({ task, index, result, onUseAsReference, onUploadPixhost }: 
         ) : (
           <div className="error-card">
             <strong>第 {index + 1} 张失败</strong>
-            <p>{result.error || result.statusText}</p>
+            <p>{errorReasonLabel(result)}</p>
+            {result.error ? <small>原始错误：{result.error}</small> : null}
           </div>
         )}
         <footer>{result.statusText} / {result.status} / {result.statusCode}</footer>
