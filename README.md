@@ -1,6 +1,6 @@
 ﻿# image-Workbench-Localhost-Version
 
-本项目是一个运行在本机的 AI 生图工作台：浏览器只连接 `127.0.0.1`，本机 Go 后端负责请求内置 NewAPI 地址，并通过本地任务队列和假流式 SSE 保证前端不断流。
+本项目是一个运行在本机的 AI 生图工作台：Go 后端同时托管前端页面和 `/api` 接口。前端代码只使用同源相对路径，不写 `localhost`，也不直接请求 NewAPI；真正的 NewAPI 请求由 Go 后端任务队列执行，并通过假流式 SSE 把状态推给页面。
 
 ## 技术栈
 
@@ -13,11 +13,13 @@
 # 后端
 go run ./cmd/local-server
 
-# 前端
+# 前端开发服务器，仅开发期使用 Vite 代理 /api 到 Go 后端
 cd web
 npm install
 npm run dev
 ```
+
+生产/打包形态下由 Go 后端直接托管 `web/dist`，前端访问 `/api/...` 即可，不需要知道后端监听地址。
 
 ## 设计文档
 

@@ -6,10 +6,10 @@ function App() {
   return (
     <main className="app-shell">
       <section className="hero-card">
-        <p className="eyebrow">Localhost Image Workbench</p>
+        <p className="eyebrow">Image Workbench</p>
         <h1>Go 后端 + React 前端</h1>
         <p>
-          前端只负责提交任务和观察 SSE 进度；真正的 NewAPI 请求会由本机 Go 后端任务队列执行，页面刷新不会中断生图。
+          前端只使用同源 /api 提交任务和观察 SSE 进度；真正的 NewAPI 请求由 Go 后端任务队列执行，页面刷新不会中断生图。
         </p>
       </section>
     </main>
