@@ -24,6 +24,17 @@ export interface AdminConfig {
   limits: { minTimeoutSec: number; maxTimeoutSec: number }
 }
 
+export interface AdminAuthStatus {
+  passwordSet: boolean
+  sessionTtlSec: number
+  updatedAt: string
+}
+
+export interface AdminSession {
+  token: string
+  expiresAt: string
+}
+
 export interface ReferenceUpload {
   id: string
   originalName: string

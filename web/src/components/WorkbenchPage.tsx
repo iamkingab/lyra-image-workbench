@@ -103,8 +103,14 @@ export function WorkbenchPage() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <div><h1>本机生图工作台</h1><p>{session.space.displayName} · {session.tokenPreview}</p></div>
-        <nav><a href="/admin">Admin</a><button onClick={logout}>退出空间</button></nav>
+        <div className="brand">
+          <div className="brand-mark">AI</div>
+          <div>
+            <h1>本机生图工作台</h1>
+            <p>{session.space.displayName} · {session.tokenPreview}</p>
+          </div>
+        </div>
+        <nav className="top-actions"><a className="ghost-link" href="/admin">Admin</a><button onClick={logout}>退出空间</button></nav>
       </header>
       <main className="workspace">
         <aside className="left-col">
