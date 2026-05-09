@@ -42,7 +42,7 @@ export function SettingsPanel({ onReady, onConfig }: { onReady?: (ready: boolean
         <input value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="填写 Image-2 Key" />
         <label className="field">
           <span>默认并发</span>
-          <input type="number" min={1} max={4} value={defaultConcurrency} onChange={(e) => setDefaultConcurrency(Number(e.target.value))} />
+          <input type="number" min={1} value={defaultConcurrency} onChange={(e) => setDefaultConcurrency(Number(e.target.value))} />
         </label>
         <label className="check-row">
           <input type="checkbox" checked={autoUploadPixhost} onChange={(e) => setAutoUploadPixhost(e.target.checked)} />

@@ -117,7 +117,7 @@ func (m *Manager) Create(spaceToken string, req CreateRequest) (Job, error) {
 		Quality:     normalizeQuality(req.Quality),
 		Size:        imageSize(normalizeRatio(req.Ratio), normalizeResolution(req.Resolution)),
 		Count:       clamp(req.Count, 1, 12, 1),
-		Concurrency: clamp(req.Concurrency, 1, 4, 1),
+		Concurrency: clamp(req.Concurrency, 1, 0, 1),
 		UploadIDs:   append([]string{}, req.UploadIDs...),
 		Progress:    0,
 		Results:     []Result{},
@@ -522,7 +522,7 @@ func clamp(value int, min int, max int, fallback int) int {
 	if value < min {
 		return min
 	}
-	if value > max {
+	if max > 0 && value > max {
 		return max
 	}
 	return value

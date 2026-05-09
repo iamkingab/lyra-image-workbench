@@ -81,7 +81,7 @@ func (s *Store) Update(spaceToken string, update Update) (PublicConfig, error) {
 		cfg.APIKey = strings.TrimSpace(*update.APIKey)
 	}
 	if update.DefaultConcurrency != nil {
-		cfg.DefaultConcurrency = clamp(*update.DefaultConcurrency, 1, 4, 1)
+		cfg.DefaultConcurrency = clamp(*update.DefaultConcurrency, 1, 0, 1)
 	}
 	if update.AutoUploadPixhost != nil {
 		cfg.AutoUploadPixhost = *update.AutoUploadPixhost
@@ -123,7 +123,7 @@ func (s *Store) configPath(spaceToken string) (string, error) {
 
 func normalize(cfg Config) Config {
 	cfg.APIKey = strings.TrimSpace(cfg.APIKey)
-	cfg.DefaultConcurrency = clamp(cfg.DefaultConcurrency, 1, 4, 1)
+	cfg.DefaultConcurrency = clamp(cfg.DefaultConcurrency, 1, 0, 1)
 	cfg.UpdatedAt = strings.TrimSpace(cfg.UpdatedAt)
 	return cfg
 }
@@ -145,7 +145,7 @@ func clamp(value int, min int, max int, fallback int) int {
 	if value < min {
 		return min
 	}
-	if value > max {
+	if max > 0 && value > max {
 		return max
 	}
 	return value

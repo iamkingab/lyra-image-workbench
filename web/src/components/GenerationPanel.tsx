@@ -126,7 +126,7 @@ export function GenerationPanel({
             </label>
             <label className="field">
               <span>并发</span>
-              <input type="number" min={1} max={4} value={concurrency} onChange={(event) => onConcurrencyChange(Number(event.target.value))} />
+              <input type="number" min={1} value={concurrency} onChange={(event) => onConcurrencyChange(Number(event.target.value))} />
             </label>
           </div>
         </section>

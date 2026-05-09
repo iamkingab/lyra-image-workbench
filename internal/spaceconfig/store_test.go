@@ -63,21 +63,21 @@ func TestStorePersistsDefaultConcurrency(t *testing.T) {
 		t.Fatalf("default concurrency = %d", defaultPublic.DefaultConcurrency)
 	}
 
-	value := 4
+	value := 6
 	public, err := store.Update(session.Token, Update{DefaultConcurrency: &value})
 	if err != nil {
 		t.Fatalf("Update() error = %v", err)
 	}
-	if public.DefaultConcurrency != 4 {
+	if public.DefaultConcurrency != 6 {
 		t.Fatalf("DefaultConcurrency = %d", public.DefaultConcurrency)
 	}
 
-	tooLarge := 99
-	public, err = store.Update(session.Token, Update{DefaultConcurrency: &tooLarge})
+	larger := 99
+	public, err = store.Update(session.Token, Update{DefaultConcurrency: &larger})
 	if err != nil {
-		t.Fatalf("Update(tooLarge) error = %v", err)
+		t.Fatalf("Update(larger) error = %v", err)
 	}
-	if public.DefaultConcurrency != 4 {
-		t.Fatalf("DefaultConcurrency should be clamped to 4, got %d", public.DefaultConcurrency)
+	if public.DefaultConcurrency != 99 {
+		t.Fatalf("DefaultConcurrency should keep values above 4, got %d", public.DefaultConcurrency)
 	}
 }
