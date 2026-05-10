@@ -10,7 +10,6 @@ type Props = {
   requestedSize?: string
   ratio?: string
   bytes?: number
-  parameters?: string[]
   onCopyImage?: () => void | Promise<void>
   onCopyUrl?: () => void | Promise<void>
   onDownload?: () => void | Promise<void>
@@ -18,7 +17,7 @@ type Props = {
   onClose: () => void
 }
 
-export function ImagePreviewModal({ src, title, bytes, parameters = [], onCopyImage, onCopyUrl, onDownload, onUseAsReference, onClose }: Props) {
+export function ImagePreviewModal({ src, title, bytes, onCopyImage, onCopyUrl, onDownload, onUseAsReference, onClose }: Props) {
   const [dimensions, setDimensions] = useState<ImageDimensions>()
   const [byteSize, setByteSize] = useState(bytes || 0)
 
@@ -69,10 +68,6 @@ export function ImagePreviewModal({ src, title, bytes, parameters = [], onCopyIm
           <span>{formatDimensions(dimensions)}</span>
           <span>{actualRatio}</span>
           <span>{byteSize ? formatBytes(byteSize) : '读取大小中'}</span>
-        </div>
-        <div className="preview-context">
-          <strong>{title}</strong>
-          {parameters.length ? <div>{parameters.map((item) => <span key={item}>{item}</span>)}</div> : null}
         </div>
         <div className="preview-actions">
           {onDownload ? <button type="button" onClick={() => void onDownload()}>下载</button> : null}
