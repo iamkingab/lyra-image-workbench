@@ -229,27 +229,51 @@ async function copyURL(src: string, setNotice: (value: string) => void) {
   try {
     await navigator.clipboard.writeText(url)
     flash(setNotice, '链接已复制')
+    return '链接已复制'
   } catch {
     flash(setNotice, '复制失败')
+    return '复制失败'
   }
 }
 
 async function copyImage(src: string, setNotice: (value: string) => void) {
+  const absoluteURL = new URL(src, window.location.origin).href
   try {
+    if (!window.isSecureContext) {
+      if (copyImageAsHTML(absoluteURL)) {
+        flash(setNotice, '图片已复制（兼容模式）')
+        return '图片已复制（兼容模式）'
+      }
+      throw new Error('复制图片需要 HTTPS 或 localhost 环境')
+    }
     if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
+      if (copyImageAsHTML(absoluteURL)) {
+        flash(setNotice, '图片已复制（兼容模式）')
+        return '图片已复制（兼容模式）'
+      }
       throw new Error('当前浏览器不支持直接复制图片')
     }
-    const response = await fetch(src, { cache: 'no-store' })
-    if (!response.ok) throw new Error(`读取图片失败：HTTP ${response.status}`)
-    const blob = await response.blob()
-    const clipboardBlob = await ensureClipboardImageBlob(blob)
     await navigator.clipboard.write([
-      new ClipboardItem({ [clipboardBlob.type]: clipboardBlob }),
+      new ClipboardItem({ 'image/png': fetchClipboardPng(absoluteURL) }),
     ])
     flash(setNotice, '图片已复制')
+    return '图片已复制'
   } catch (err) {
-    flash(setNotice, err instanceof Error ? err.message : '复制图片失败')
+    if (copyImageAsHTML(absoluteURL)) {
+      flash(setNotice, '图片已复制（兼容模式）')
+      return '图片已复制（兼容模式）'
+    }
+    const message = err instanceof Error ? err.message : '复制图片失败'
+    flash(setNotice, message)
+    return message
   }
+}
+
+async function fetchClipboardPng(src: string) {
+  const response = await fetch(src, { cache: 'no-store' })
+  if (!response.ok) throw new Error(`读取图片失败：HTTP ${response.status}`)
+  const blob = await response.blob()
+  return ensureClipboardImageBlob(blob)
 }
 
 async function ensureClipboardImageBlob(blob: Blob) {
@@ -289,6 +313,37 @@ function loadImageElement(src: string): Promise<HTMLImageElement> {
     image.onerror = () => reject(new Error('图片加载失败'))
     image.src = src
   })
+}
+
+function copyImageAsHTML(src: string) {
+  const selection = window.getSelection()
+  if (!selection) return false
+  const host = document.createElement('div')
+  host.contentEditable = 'true'
+  host.style.position = 'fixed'
+  host.style.left = '-9999px'
+  host.style.top = '0'
+  host.style.opacity = '0'
+  host.style.pointerEvents = 'none'
+  const image = document.createElement('img')
+  image.src = src
+  image.alt = 'generated image'
+  host.appendChild(image)
+  document.body.appendChild(host)
+  const range = document.createRange()
+  range.selectNode(image)
+  selection.removeAllRanges()
+  selection.addRange(range)
+  let ok = false
+  try {
+    ok = document.execCommand('copy')
+  } catch {
+    ok = false
+  } finally {
+    selection.removeAllRanges()
+    host.remove()
+  }
+  return ok
 }
 
 async function downloadImage(src: string, index: number) {

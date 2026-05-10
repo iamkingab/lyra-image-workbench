@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { formatBytes } from '../lib/format'
 
 type ImageDimensions = { width: number; height: number }
+type PreviewAction = () => void | string | Promise<void | string>
 
 type Props = {
   src: string
@@ -10,16 +11,17 @@ type Props = {
   requestedSize?: string
   ratio?: string
   bytes?: number
-  onCopyImage?: () => void | Promise<void>
-  onCopyUrl?: () => void | Promise<void>
-  onDownload?: () => void | Promise<void>
-  onUseAsReference?: () => void | Promise<void>
+  onCopyImage?: PreviewAction
+  onCopyUrl?: PreviewAction
+  onDownload?: PreviewAction
+  onUseAsReference?: PreviewAction
   onClose: () => void
 }
 
 export function ImagePreviewModal({ src, title, bytes, onCopyImage, onCopyUrl, onDownload, onUseAsReference, onClose }: Props) {
   const [dimensions, setDimensions] = useState<ImageDimensions>()
   const [byteSize, setByteSize] = useState(bytes || 0)
+  const [notice, setNotice] = useState('')
 
   useEffect(() => {
     setDimensions(undefined)
@@ -60,6 +62,17 @@ export function ImagePreviewModal({ src, title, bytes, onCopyImage, onCopyUrl, o
 
   const actualRatio = useMemo(() => formatActualRatio(dimensions), [dimensions])
 
+  async function runAction(action: PreviewAction | undefined, fallback: string) {
+    if (!action) return
+    try {
+      const result = await action()
+      setNotice(typeof result === 'string' && result ? result : fallback)
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : '操作失败')
+    }
+    window.setTimeout(() => setNotice(''), 1800)
+  }
+
   return createPortal(
     <div className="preview-mask" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <div className="preview-dialog" role="dialog" aria-modal="true" aria-label={title}>
@@ -79,11 +92,12 @@ export function ImagePreviewModal({ src, title, bytes, onCopyImage, onCopyUrl, o
             })}
           />
         </div>
+        {notice ? <div className="preview-notice" role="status">{notice}</div> : null}
         <div className="preview-actions">
-          {onDownload ? <button type="button" onClick={() => void onDownload()}>下载</button> : null}
-          {onCopyImage ? <button type="button" onClick={() => void onCopyImage()}>复制图片</button> : null}
-          {onCopyUrl ? <button type="button" onClick={() => void onCopyUrl()}>复制链接</button> : null}
-          {onUseAsReference ? <button type="button" onClick={() => void onUseAsReference()}>作为参考图</button> : null}
+          {onDownload ? <button type="button" onClick={() => void runAction(onDownload, '下载已触发')}>下载</button> : null}
+          {onCopyImage ? <button type="button" onClick={() => void runAction(onCopyImage, '图片已复制')}>复制图片</button> : null}
+          {onCopyUrl ? <button type="button" onClick={() => void runAction(onCopyUrl, '链接已复制')}>复制链接</button> : null}
+          {onUseAsReference ? <button type="button" onClick={() => void runAction(onUseAsReference, '已加入参考图')}>作为参考图</button> : null}
         </div>
       </div>
     </div>,
