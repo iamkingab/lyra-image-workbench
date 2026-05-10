@@ -559,6 +559,11 @@ function PromptResult({
         </section>
       ) : null}
 
+      <div className="prompt-result-actions prompt-result-actions-top">
+        <button type="button" onClick={() => onCopy(prompt)}>复制提示词</button>
+        <button type="button" className="primary" onClick={() => onUse(prompt, { provider, model })}>填入并使用该模型</button>
+      </div>
+
       <label>
         <span>正向提示词</span>
         <textarea value={prompt} readOnly rows={8} />

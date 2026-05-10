@@ -1709,6 +1709,21 @@ button:not(.primary) { background: var(--surface-soft); color: #1e3a8a; border: 
   gap: 8px;
   flex-wrap: wrap;
 }
+.prompt-result-actions-top {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  justify-content: flex-start;
+  margin: -4px -4px 2px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .96);
+  padding: 8px;
+  backdrop-filter: blur(8px);
+}
+.prompt-result-actions-top button {
+  width: auto;
+}
 .prompt-history-list {
   display: grid;
   align-content: start;
@@ -3866,6 +3881,13 @@ button:not(.primary) { background: var(--surface-soft); color: #1e3a8a; border: 
   border-top: 0;
   padding: 0;
 }
+.generate-assistant-panel .prompt-result-actions-top {
+  position: sticky;
+  top: 0;
+  margin: -6px -6px 4px;
+  border: 1px solid var(--border);
+  padding: 8px;
+}
 
 @media (min-width: 1880px) {
   .generate-page {
@@ -3902,6 +3924,13 @@ button:not(.primary) { background: var(--surface-soft); color: #1e3a8a; border: 
     margin: 0 -14px -14px;
     border-top: 1px solid var(--border);
     padding: 10px 14px 14px;
+  }
+  .generate-assistant-panel .prompt-result-actions-top {
+    top: 0;
+    bottom: auto;
+    margin: -6px -6px 4px;
+    border: 1px solid var(--border);
+    padding: 8px;
   }
 }
 
@@ -4009,6 +4038,7 @@ button:not(.primary) { background: var(--surface-soft); color: #1e3a8a; border: 
 :root[data-theme='dark'] .status-line,
 :root[data-theme='dark'] .submit-readiness,
 :root[data-theme='dark'] .result-action-row,
+:root[data-theme='dark'] .prompt-result-actions-top,
 :root[data-theme='dark'] .settings-submit-row {
   background: rgba(16, 24, 39, .96) !important;
   border-color: var(--border) !important;
