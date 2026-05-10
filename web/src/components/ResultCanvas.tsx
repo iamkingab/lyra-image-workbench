@@ -19,6 +19,7 @@ export function ResultCanvas({ task, onUseAsReference, onUploadPixhost, onOpenGe
   const okCount = task?.results.filter((item) => item.ok).length || 0
   const hasFailed = task?.results.some((item) => !item.ok) || ['failed', 'partial_failed', 'cancelled', 'interrupted'].includes(task?.status || '')
   const hasTaskActions = Boolean(onReuse || onOpenQueue || (hasFailed && onRetry))
+  const layoutClass = task ? resultLayoutClass(task.count) : ''
   return (
     <section className="result-canvas">
       <header className="canvas-header">
@@ -52,7 +53,7 @@ export function ResultCanvas({ task, onUseAsReference, onUploadPixhost, onOpenGe
               {hasFailed && onRetry ? <button type="button" onClick={() => onRetry(task.id)}>重试失败任务</button> : null}
             </div>
           ) : null}
-          <div className="result-grid">
+          <div className={`result-grid ${layoutClass}`}>
             {Array.from({ length: task.count }, (_, index) => {
               const result = task.results.find((item) => item.index === index)
               return <ResultCard key={index} task={task} index={index} result={result} onUseAsReference={onUseAsReference} onUploadPixhost={onUploadPixhost} />
@@ -152,7 +153,9 @@ function ResultCard({ task, index, result, onUseAsReference, onUploadPixhost }: 
       <article className={`result-card ${result.ok ? '' : 'is-error'}`}>
         {imageUrl ? (
           <>
-            <img src={imageUrl} alt={`生成结果 ${index + 1}`} />
+            <div className="result-image-frame">
+              <img src={imageUrl} alt={`生成结果 ${index + 1}`} />
+            </div>
             <div className="card-toolbar">
               <button type="button" onClick={() => setPreviewOpen(true)}>预览</button>
               <button type="button" onClick={() => void downloadImage(imageUrl, index)}>下载</button>
@@ -311,6 +314,12 @@ function extensionFromMime(mime: string) {
 function compactPrompt(prompt: string) {
   const text = prompt.trim().replace(/\s+/g, ' ')
   return text.length > 96 ? `${text.slice(0, 96)}...` : text
+}
+
+function resultLayoutClass(count: number) {
+  if (count <= 1) return 'single-result'
+  if (count <= 4) return 'few-results'
+  return 'many-results'
 }
 
 function uniqueRevisedPrompts(task: Task) {
