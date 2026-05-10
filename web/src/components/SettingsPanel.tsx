@@ -1,4 +1,4 @@
-﻿import { type FormEvent, useEffect, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
 import { getUserConfig, saveUserConfig } from '../api/config'
 import type { UserConfig } from '../types'
 
@@ -31,20 +31,20 @@ export function SettingsPanel({ onReady, onConfig }: { onReady?: (ready: boolean
     setDefaultConcurrency(cfg.defaultConcurrency || 1)
     setAutoUploadPixhost(Boolean(cfg.autoUploadPixhost))
     setApiKey('')
-    setMessage(apiKey.trim() ? 'Image-2 Key 和默认并发已保存' : '默认并发已保存')
+    setMessage(apiKey.trim() ? 'codex-key 和默认并发已保存' : '默认并发已保存')
     onReady?.(cfg.apiKeySet)
     onConfig?.(cfg)
   }
   return (
     <section className="form-section key-section">
       <div className="section-title">
-        <span>Image-2 Key</span>
+        <span>codex-key</span>
         <small>后端保存</small>
       </div>
-      <p className="muted">Image-2 Key 只保存到 Go 后端当前个人空间，前端不请求上游；后续会为 Gemini Banana 等模型预留独立 Key。</p>
+      <p className="muted">codex-key 只保存到 Go 后端当前个人空间，前端不请求上游；后续会为 Gemini Banana 等模型预留独立 Key。</p>
       <div className="status-line">当前：{config?.apiKeySet ? `已设置 ${config.apiKeyPreview}` : '未设置'}</div>
       <form onSubmit={submit} className="inline-form">
-        <input value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="填写 Image-2 Key" />
+        <input value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="填写 codex-key" />
         <label className="field">
           <span>默认并发</span>
           <input type="number" min={1} value={defaultConcurrency} onChange={(e) => setDefaultConcurrency(readNumberInput(e.target.value))} />

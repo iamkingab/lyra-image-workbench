@@ -60,7 +60,7 @@ func promptToolErrorMeta(mode string, err error) jobs.Meta {
 	raw := strings.TrimSpace(err.Error())
 	lower := strings.ToLower(raw)
 	if strings.Contains(lower, "请先") && strings.Contains(lower, "key") {
-		return jobs.Meta{Code: "P_CODEX_KEY_MISSING", English: "codex_key_missing", Chinese: "请先填写 Codex Key"}
+		return jobs.Meta{Code: "P_CODEX_KEY_MISSING", English: "codex_key_missing", Chinese: "请先填写 codex-key"}
 	}
 	if strings.Contains(raw, "请输入需要扩写") {
 		return jobs.Meta{Code: "P_TEXT_INPUT_EMPTY", English: "text_input_empty", Chinese: "请输入需要扩写的文字想法"}

@@ -90,7 +90,7 @@ func (m *Manager) Create(spaceToken string, req CreateRequest) (Job, error) {
 		return Job{}, err
 	}
 	if strings.TrimSpace(spaceCfg.APIKey) == "" {
-		return Job{}, errors.New("请先在当前个人空间填写 Image-2 Key")
+		return Job{}, errors.New("请先在当前个人空间填写 codex-key")
 	}
 	if req.Mode == ModeImageToImage {
 		if len(req.UploadIDs) == 0 {

@@ -63,7 +63,7 @@ func (c *Client) Complete(ctx context.Context, req Request) (Response, error) {
 		return Response{}, errors.New("提示词模型 URL 为空")
 	}
 	if strings.TrimSpace(req.APIKey) == "" {
-		return Response{}, errors.New("请先在当前个人空间填写 Image-2 Key，提示词工具会复用该 Key")
+		return Response{}, errors.New("请先在当前个人空间填写 codex-key，提示词工具会复用该 Key")
 	}
 	if strings.TrimSpace(req.Model) == "" {
 		return Response{}, errors.New("提示词模型为空")

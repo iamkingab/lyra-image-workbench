@@ -68,7 +68,7 @@ export function GenerationPanel({
     <aside className="generation-panel">
       <section className="form-section key-summary">
         <div className="section-title">
-          <span>Image-2 Key</span>
+          <span>codex-key</span>
           <small>{keyReady ? '已就绪' : '需要设置'}</small>
         </div>
         <div className="key-row">

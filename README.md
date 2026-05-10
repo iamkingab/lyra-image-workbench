@@ -1,4 +1,4 @@
-﻿# image-Workbench-Localhost-Version
+# image-Workbench-Localhost-Version
 
 本项目是一个运行在本机的 AI 生图工作台：Go 后端同时托管前端页面和 `/api` 接口。前端代码只使用同源相对路径，不写 `localhost`，也不直接请求 NewAPI；真正的 NewAPI 请求由 Go 后端任务队列执行，并通过假流式 SSE 把状态推给页面。
 
@@ -29,7 +29,7 @@ npm run build
 
 1. 运行 `go run ./cmd/local-server` 启动本机后端，默认监听 `127.0.0.1:8787`。
 2. 打开工作台，输入空间密码创建/进入个人空间。
-3. 在设置窗口填写用于 `gpt-image-2` 的 Image-2 Key，并可设置默认并发；后端只向前端返回掩码。
+3. 在设置窗口填写用于 `gpt-image-2` 的 codex-key，并可设置默认并发；后端只向前端返回掩码。
 4. 首次打开 `/admin` 需要先设置 Admin 管理密码；后续访问 Admin 页面需要重新输入管理密码。
 5. 在 `/admin` 配置 NewAPI URL 和请求超时时间，默认超时为 `600s`，模型固定为 `gpt-image-2`。
 6. 回到 `/` 提交文生图或图生图任务。前端只请求同源 `/api`，后端后台任务继续执行，刷新页面后可从本机 JSON 状态和 `outputs/` 结果恢复。
