@@ -21,7 +21,8 @@ func TestFileStoreUpdatePersistsAdminConfig(t *testing.T) {
 	baseURL := "http://127.0.0.1:3010/v1/images/generations"
 	publicURL := "https://image.example.com/"
 	timeout := 601
-	updated, err := store.Update(Update{NewAPIBaseURL: &baseURL, PublicBaseURL: &publicURL, TimeoutSec: &timeout})
+	debugEnabled := true
+	updated, err := store.Update(Update{NewAPIBaseURL: &baseURL, PublicBaseURL: &publicURL, DebugEnabled: &debugEnabled, TimeoutSec: &timeout})
 	if err != nil {
 		t.Fatalf("Update() error = %v", err)
 	}
@@ -34,6 +35,9 @@ func TestFileStoreUpdatePersistsAdminConfig(t *testing.T) {
 	if updated.PublicBaseURL != "https://image.example.com" {
 		t.Fatalf("PublicBaseURL = %q", updated.PublicBaseURL)
 	}
+	if !updated.DebugEnabled {
+		t.Fatalf("DebugEnabled = false")
+	}
 	if updated.Model != config.DefaultModel {
 		t.Fatalf("Model = %q", updated.Model)
 	}
@@ -43,7 +47,7 @@ func TestFileStoreUpdatePersistsAdminConfig(t *testing.T) {
 		t.Fatalf("reopen NewFileStore() error = %v", err)
 	}
 	public := reopened.Public()
-	if public.NewAPIBaseURL != updated.NewAPIBaseURL || public.PublicBaseURL != updated.PublicBaseURL || public.TimeoutSec != timeout {
+	if public.NewAPIBaseURL != updated.NewAPIBaseURL || public.PublicBaseURL != updated.PublicBaseURL || public.TimeoutSec != timeout || !public.DebugEnabled {
 		t.Fatalf("Public() = %+v", public)
 	}
 	if !public.ModelLocked || public.Model != config.DefaultModel {

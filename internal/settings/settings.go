@@ -17,6 +17,7 @@ import (
 type RuntimeConfig struct {
 	NewAPIBaseURL string `json:"newApiBaseUrl"`
 	PublicBaseURL string `json:"publicBaseUrl"`
+	DebugEnabled  bool   `json:"debugEnabled"`
 	TimeoutSec    int    `json:"timeoutSec"`
 	Model         string `json:"model"`
 	UpdatedAt     string `json:"updatedAt"`
@@ -25,6 +26,7 @@ type RuntimeConfig struct {
 type PublicRuntimeConfig struct {
 	NewAPIBaseURL string `json:"newApiBaseUrl"`
 	PublicBaseURL string `json:"publicBaseUrl"`
+	DebugEnabled  bool   `json:"debugEnabled"`
 	TimeoutSec    int    `json:"timeoutSec"`
 	Model         string `json:"model"`
 	ModelLocked   bool   `json:"modelLocked"`
@@ -41,6 +43,7 @@ type Limits struct {
 type Update struct {
 	NewAPIBaseURL *string `json:"newApiBaseUrl"`
 	PublicBaseURL *string `json:"publicBaseUrl"`
+	DebugEnabled  *bool   `json:"debugEnabled"`
 	TimeoutSec    *int    `json:"timeoutSec"`
 }
 
@@ -104,6 +107,9 @@ func (s *FileStore) Update(update Update) (RuntimeConfig, error) {
 	if update.PublicBaseURL != nil {
 		next.PublicBaseURL = strings.TrimSpace(*update.PublicBaseURL)
 	}
+	if update.DebugEnabled != nil {
+		next.DebugEnabled = *update.DebugEnabled
+	}
 	if update.TimeoutSec != nil {
 		next.TimeoutSec = *update.TimeoutSec
 	}
@@ -142,6 +148,7 @@ func merge(base RuntimeConfig, loaded RuntimeConfig) RuntimeConfig {
 	if strings.TrimSpace(loaded.PublicBaseURL) != "" {
 		base.PublicBaseURL = loaded.PublicBaseURL
 	}
+	base.DebugEnabled = loaded.DebugEnabled
 	if loaded.TimeoutSec != 0 {
 		base.TimeoutSec = loaded.TimeoutSec
 	}
@@ -183,6 +190,7 @@ func validate(value RuntimeConfig) (RuntimeConfig, error) {
 	return RuntimeConfig{
 		NewAPIBaseURL: baseURL,
 		PublicBaseURL: publicBaseURL,
+		DebugEnabled:  value.DebugEnabled,
 		TimeoutSec:    value.TimeoutSec,
 		Model:         config.DefaultModel,
 		UpdatedAt:     strings.TrimSpace(value.UpdatedAt),
@@ -227,6 +235,7 @@ func toPublic(value RuntimeConfig) PublicRuntimeConfig {
 	return PublicRuntimeConfig{
 		NewAPIBaseURL: value.NewAPIBaseURL,
 		PublicBaseURL: value.PublicBaseURL,
+		DebugEnabled:  value.DebugEnabled,
 		TimeoutSec:    value.TimeoutSec,
 		Model:         config.DefaultModel,
 		ModelLocked:   true,

@@ -66,12 +66,16 @@ func TestAdminConfigAPIUpdatesURLAndTimeout(t *testing.T) {
 	body := doAdminJSON(t, router, http.MethodPost, "/api/admin/config", adminToken, map[string]any{
 		"newApiBaseUrl": "http://127.0.0.1:3010/v1/images/edits",
 		"timeoutSec":    600,
+		"debugEnabled":  true,
 	})
 	if !strings.Contains(body, `"newApiBaseUrl":"http://127.0.0.1:3010/v1"`) {
 		t.Fatalf("admin URL was not normalized: %s", body)
 	}
 	if !strings.Contains(body, `"timeoutSec":600`) || !strings.Contains(body, `"model":"gpt-image-2"`) {
 		t.Fatalf("admin response missing timeout/model: %s", body)
+	}
+	if !strings.Contains(body, `"debugEnabled":true`) {
+		t.Fatalf("admin response missing debug flag: %s", body)
 	}
 }
 

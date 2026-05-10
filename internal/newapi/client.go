@@ -44,6 +44,8 @@ type Request struct {
 type Image struct {
 	Bytes         []byte
 	Mime          string
+	StatusCode    int
+	ContentType   string
 	RevisedPrompt string
 	ActualSize    string
 	ActualQuality string
@@ -193,7 +195,7 @@ func (c *Client) doAndParse(ctx context.Context, req *http.Request, requestedFor
 		if err != nil {
 			return Image{}, err
 		}
-		return Image{Bytes: data, Mime: contentType, OutputFormat: outputFormatFromMime(contentType)}, nil
+		return Image{Bytes: data, Mime: contentType, StatusCode: res.StatusCode, ContentType: contentType, OutputFormat: outputFormatFromMime(contentType)}, nil
 	}
 	var payload struct {
 		RevisedPrompt string `json:"revised_prompt"`
@@ -222,6 +224,8 @@ func (c *Client) doAndParse(ctx context.Context, req *http.Request, requestedFor
 			return Image{
 				Bytes:         data,
 				Mime:          mimeFromOutputFormat(outputFormat),
+				StatusCode:    res.StatusCode,
+				ContentType:   contentType,
 				RevisedPrompt: firstNonEmpty(item.RevisedPrompt, payload.RevisedPrompt),
 				ActualSize:    firstNonEmpty(item.Size, payload.Size),
 				ActualQuality: firstNonEmpty(item.Quality, payload.Quality),
@@ -232,6 +236,9 @@ func (c *Client) doAndParse(ctx context.Context, req *http.Request, requestedFor
 			image, err := c.fetchImageURL(ctx, item.URL)
 			if err != nil {
 				return Image{}, err
+			}
+			if image.StatusCode == 0 {
+				image.StatusCode = res.StatusCode
 			}
 			image.RevisedPrompt = firstNonEmpty(item.RevisedPrompt, payload.RevisedPrompt)
 			image.ActualSize = firstNonEmpty(item.Size, payload.Size)
@@ -265,7 +272,7 @@ func (c *Client) fetchImageURL(ctx context.Context, url string) (Image, error) {
 	if err != nil {
 		return Image{}, err
 	}
-	return Image{Bytes: data, Mime: mime, OutputFormat: outputFormatFromMime(mime)}, nil
+	return Image{Bytes: data, Mime: mime, StatusCode: res.StatusCode, ContentType: mime, OutputFormat: outputFormatFromMime(mime)}, nil
 }
 
 func decodeBase64Image(value string) ([]byte, error) {

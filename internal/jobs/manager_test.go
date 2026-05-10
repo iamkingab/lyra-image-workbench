@@ -83,6 +83,46 @@ func TestManagerCreateReturnsQueuedAndCompletesInBackground(t *testing.T) {
 	}
 }
 
+func TestManagerRecordsDebugLogsWhenEnabled(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]string{{
+			"b64_json": base64.StdEncoding.EncodeToString([]byte("debug-image")),
+		}}})
+	}))
+	defer server.Close()
+	env := newManagerTestEnv(t, server.URL+"/v1")
+	debugEnabled := true
+	if _, err := env.settings.Update(settings.Update{DebugEnabled: &debugEnabled}); err != nil {
+		t.Fatalf("settings.Update(debug) error = %v", err)
+	}
+
+	created, err := env.manager.Create(env.token, CreateRequest{
+		Mode:       ModeTextToImage,
+		Prompt:     "debug cat",
+		Ratio:      "1:1",
+		Resolution: "standard",
+		Count:      1,
+	})
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+	if !created.DebugEnabled || len(created.DebugLogs) == 0 {
+		t.Fatalf("created job should include debug log: %+v", created)
+	}
+
+	final := waitForJobStatus(t, env.store, env.token, created.ID, StatusSucceeded, 3*time.Second)
+	if len(final.DebugLogs) < 3 {
+		t.Fatalf("expected request/response/save debug logs, got %+v", final.DebugLogs)
+	}
+	encoded, _ := json.Marshal(final.DebugLogs)
+	if strings.Contains(string(encoded), "sk-test") {
+		t.Fatalf("debug logs leaked raw api key: %s", encoded)
+	}
+	if !strings.Contains(string(encoded), "upstream_request") || !strings.Contains(string(encoded), "upstream_response") {
+		t.Fatalf("debug logs missing upstream stages: %s", encoded)
+	}
+}
+
 func TestManagerAllowsPartialFailed(t *testing.T) {
 	var requests atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

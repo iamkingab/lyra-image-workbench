@@ -119,6 +119,7 @@ func (m *Manager) Create(spaceToken string, req CreateRequest) (Job, error) {
 	if err != nil {
 		return Job{}, err
 	}
+	adminCfg := m.settings.Get()
 	ratio := normalizeRatio(req.Ratio)
 	resolution := normalizeResolution(req.Resolution)
 	quality := normalizeQuality(req.Quality)
@@ -149,11 +150,26 @@ func (m *Manager) Create(spaceToken string, req CreateRequest) (Job, error) {
 		UploadIDs:    append([]string{}, req.UploadIDs...),
 		Progress:     0,
 		Results:      []Result{},
+		DebugEnabled: adminCfg.DebugEnabled,
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}
 	ApplyStatus(&job, StatusQueued)
 	ApplyStage(&job, StageQueued)
+	if job.DebugEnabled {
+		job.DebugLogs = append(job.DebugLogs, newDebugLog(-1, "info", "create", "任务已创建，Debug 日志已开启", map[string]any{
+			"provider":    job.Provider,
+			"model":       job.Model,
+			"mode":        job.Mode,
+			"ratio":       job.Ratio,
+			"resolution":  job.Resolution,
+			"quality":     job.Quality,
+			"format":      job.OutputFormat,
+			"size":        job.Size,
+			"count":       job.Count,
+			"concurrency": job.Concurrency,
+		}))
+	}
 	if err := m.store.Save(job); err != nil {
 		return Job{}, err
 	}
@@ -456,10 +472,49 @@ func (m *Manager) generateOne(ctx context.Context, spaceToken string, jobID stri
 		}
 	})
 	m.publish(jobID, "progress", eventPayload(job))
+	m.appendDebugLog(spaceToken, jobID, index, "info", "upstream_request", "准备向 NewAPI 提交生图请求", map[string]any{
+		"method":          "POST",
+		"url":             upstreamEndpoint(admin.NewAPIBaseURL, job.Mode),
+		"baseUrl":         admin.NewAPIBaseURL,
+		"timeoutSec":      admin.TimeoutSec,
+		"provider":        provider,
+		"model":           model,
+		"mode":            job.Mode,
+		"authorization":   "Bearer " + maskSecret(apiKey),
+		"contentType":     requestContentType(job.Mode),
+		"payload":         debugPayload(job, model, skipImageParams),
+		"inputImages":     debugInputImages(inputs),
+		"skipImageParams": skipImageParams,
+		"promptLength":    len([]rune(job.Prompt)),
+		"promptPreview":   compactDebugText(job.Prompt, 120),
+	})
 	image, err := m.newapi.Generate(ctx, newapi.Request{Mode: string(job.Mode), BaseURL: admin.NewAPIBaseURL, APIKey: apiKey, Model: model, Prompt: job.Prompt, Size: job.Size, Quality: job.Quality, OutputFormat: job.OutputFormat, SkipImageParams: skipImageParams, TimeoutSec: admin.TimeoutSec, InputImages: inputs})
 	if err != nil {
+		fields := map[string]any{
+			"error":     err.Error(),
+			"errorCode": ErrorMeta(err.Error()).Code,
+			"errorText": ErrorMeta(err.Error()).Chinese,
+			"errorType": fmt.Sprintf("%T", err),
+			"elapsedMs": time.Since(started).Milliseconds(),
+		}
+		var upstreamErr newapi.UpstreamError
+		if errors.As(err, &upstreamErr) {
+			fields["httpStatus"] = upstreamErr.StatusCode
+			fields["upstreamMessage"] = upstreamErr.Message
+		}
+		m.appendDebugLog(spaceToken, jobID, index, "error", "upstream_response", "NewAPI 请求失败", fields)
 		return withElapsed(NewResult(index, StatusFailed, err.Error()), started)
 	}
+	m.appendDebugLog(spaceToken, jobID, index, "info", "upstream_response", "NewAPI 已返回图片数据", map[string]any{
+		"httpStatus":    image.StatusCode,
+		"contentType":   image.ContentType,
+		"mime":          image.Mime,
+		"bytes":         len(image.Bytes),
+		"actualSize":    image.ActualSize,
+		"actualQuality": image.ActualQuality,
+		"outputFormat":  image.OutputFormat,
+		"elapsedMs":     time.Since(started).Milliseconds(),
+	})
 	job, _, _ = m.store.Update(spaceToken, jobID, func(j *Job) {
 		ApplyStage(j, StageSaving)
 		if j.Progress < 92 {
@@ -469,8 +524,19 @@ func (m *Manager) generateOne(ctx context.Context, spaceToken string, jobID stri
 	m.publish(jobID, "progress", eventPayload(job))
 	saved, err := m.output.Save(spaceToken, jobID, index, image.Bytes, image.Mime)
 	if err != nil {
+		m.appendDebugLog(spaceToken, jobID, index, "error", "save_output", "保存图片到本机失败", map[string]any{
+			"error":     err.Error(),
+			"errorCode": ErrorMeta(err.Error()).Code,
+			"elapsedMs": time.Since(started).Milliseconds(),
+		})
 		return withElapsed(NewResult(index, StatusFailed, err.Error()), started)
 	}
+	m.appendDebugLog(spaceToken, jobID, index, "info", "save_output", "图片已保存到本机", map[string]any{
+		"url":      saved.URL,
+		"fileName": saved.FileName,
+		"mime":     saved.Mime,
+		"bytes":    saved.Bytes,
+	})
 	result := withElapsed(NewResult(index, StatusSucceeded, ""), started)
 	result.ImageURL = saved.URL
 	result.Mime = saved.Mime
@@ -529,6 +595,140 @@ func (m *Manager) fakeProgress(spaceToken string, jobID string, done <-chan stru
 func (m *Manager) publish(jobID string, name string, data any) {
 	meta := EventMeta(name)
 	m.hub.Publish(jobID, events.Event{Event: name, Code: meta.Code, English: meta.English, Chinese: meta.Chinese, Data: data})
+}
+
+func (m *Manager) appendDebugLog(spaceToken string, jobID string, imageIndex int, level string, stage string, message string, fields map[string]any) {
+	var logEntry DebugLog
+	job, ok, _ := m.store.Update(spaceToken, jobID, func(j *Job) {
+		if !j.DebugEnabled {
+			return
+		}
+		logEntry = newDebugLog(imageIndex, level, stage, message, fields)
+		j.DebugLogs = append(j.DebugLogs, logEntry)
+		const maxDebugLogs = 200
+		if len(j.DebugLogs) > maxDebugLogs {
+			j.DebugLogs = append([]DebugLog{}, j.DebugLogs[len(j.DebugLogs)-maxDebugLogs:]...)
+		}
+	})
+	if ok && logEntry.Time != "" {
+		m.publish(jobID, "debug", map[string]any{"job": job, "log": logEntry})
+	}
+}
+
+func newDebugLog(imageIndex int, level string, stage string, message string, fields map[string]any) DebugLog {
+	if level == "" {
+		level = "info"
+	}
+	return DebugLog{
+		Time:       time.Now().Format(time.RFC3339Nano),
+		Level:      level,
+		Stage:      stage,
+		Message:    message,
+		ImageIndex: imageIndex,
+		Fields:     sanitizeDebugFields(fields),
+	}
+}
+
+func sanitizeDebugFields(fields map[string]any) map[string]any {
+	if len(fields) == 0 {
+		return nil
+	}
+	out := make(map[string]any, len(fields))
+	for key, value := range fields {
+		lower := strings.ToLower(key)
+		if strings.Contains(lower, "apikey") || strings.Contains(lower, "api_key") || strings.Contains(lower, "token") || strings.Contains(lower, "secret") {
+			out[key] = "***"
+			continue
+		}
+		out[key] = value
+	}
+	return out
+}
+
+func upstreamEndpoint(baseURL string, mode Mode) string {
+	path := "images/generations"
+	if mode == ModeImageToImage {
+		path = "images/edits"
+	}
+	return strings.TrimRight(baseURL, "/") + "/" + path
+}
+
+func requestContentType(mode Mode) string {
+	if mode == ModeImageToImage {
+		return "multipart/form-data"
+	}
+	return "application/json"
+}
+
+func debugPayload(job Job, model string, skipImageParams bool) map[string]any {
+	payload := map[string]any{
+		"model":           model,
+		"prompt":          fmt.Sprintf("<已脱敏，长度 %d 字符>", len([]rune(job.Prompt))),
+		"n":               1,
+		"response_format": "b64_json",
+	}
+	if !skipImageParams {
+		payload["output_format"] = debugActualOutputFormat(job.OutputFormat)
+		if job.Size != "" && job.Size != "自动" && job.Size != "auto" {
+			payload["size"] = job.Size
+		}
+		if job.Quality != "" {
+			payload["quality"] = debugActualQuality(job.Quality)
+		}
+	}
+	return payload
+}
+
+func debugActualOutputFormat(value string) string {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "jpg", "jpeg":
+		return "jpeg"
+	case "webp":
+		return "webp"
+	case "png":
+		return "png"
+	default:
+		return "png"
+	}
+}
+
+func debugActualQuality(value string) string {
+	switch strings.TrimSpace(value) {
+	case "low", "medium", "high":
+		return strings.TrimSpace(value)
+	default:
+		return "auto"
+	}
+}
+
+func debugInputImages(inputs []newapi.InputImage) []map[string]any {
+	out := make([]map[string]any, 0, len(inputs))
+	for index, input := range inputs {
+		out = append(out, map[string]any{
+			"index": index,
+			"name":  input.Name,
+			"mime":  input.Mime,
+		})
+	}
+	return out
+}
+
+func maskSecret(value string) string {
+	value = strings.TrimSpace(value)
+	runes := []rune(value)
+	if len(runes) <= 8 {
+		return "***"
+	}
+	return string(runes[:4]) + "..." + string(runes[len(runes)-4:])
+}
+
+func compactDebugText(value string, limit int) string {
+	text := strings.TrimSpace(strings.Join(strings.Fields(value), " "))
+	runes := []rune(text)
+	if limit <= 0 || len(runes) <= limit {
+		return text
+	}
+	return string(runes[:limit]) + "..."
 }
 
 type bananaSpec struct {

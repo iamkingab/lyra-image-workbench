@@ -45,34 +45,45 @@ type Meta struct {
 }
 
 type Job struct {
-	ID           string    `json:"id"`
-	SpaceToken   string    `json:"spaceToken"`
-	Provider     string    `json:"provider"`
-	Model        string    `json:"model"`
-	Mode         Mode      `json:"mode"`
-	Prompt       string    `json:"prompt"`
-	Ratio        string    `json:"ratio"`
-	Resolution   string    `json:"resolution"`
-	Quality      string    `json:"quality"`
-	OutputFormat string    `json:"outputFormat"`
-	Size         string    `json:"size"`
-	Count        int       `json:"count"`
-	Concurrency  int       `json:"concurrency"`
-	UploadIDs    []string  `json:"uploadIds,omitempty"`
-	Status       Status    `json:"status"`
-	StatusText   string    `json:"statusText"`
-	StatusCode   string    `json:"statusCode"`
-	Stage        Stage     `json:"stage"`
-	StageText    string    `json:"stageText"`
-	StageCode    string    `json:"stageCode"`
-	Progress     int       `json:"progress"`
-	Results      []Result  `json:"results"`
-	Favorite     bool      `json:"favorite,omitempty"`
-	Error        string    `json:"error,omitempty"`
-	CreatedAt    time.Time `json:"createdAt"`
-	UpdatedAt    time.Time `json:"updatedAt"`
-	StartedAt    time.Time `json:"startedAt,omitempty"`
-	FinishedAt   time.Time `json:"finishedAt,omitempty"`
+	ID           string     `json:"id"`
+	SpaceToken   string     `json:"spaceToken"`
+	Provider     string     `json:"provider"`
+	Model        string     `json:"model"`
+	Mode         Mode       `json:"mode"`
+	Prompt       string     `json:"prompt"`
+	Ratio        string     `json:"ratio"`
+	Resolution   string     `json:"resolution"`
+	Quality      string     `json:"quality"`
+	OutputFormat string     `json:"outputFormat"`
+	Size         string     `json:"size"`
+	Count        int        `json:"count"`
+	Concurrency  int        `json:"concurrency"`
+	UploadIDs    []string   `json:"uploadIds,omitempty"`
+	Status       Status     `json:"status"`
+	StatusText   string     `json:"statusText"`
+	StatusCode   string     `json:"statusCode"`
+	Stage        Stage      `json:"stage"`
+	StageText    string     `json:"stageText"`
+	StageCode    string     `json:"stageCode"`
+	Progress     int        `json:"progress"`
+	Results      []Result   `json:"results"`
+	DebugEnabled bool       `json:"debugEnabled,omitempty"`
+	DebugLogs    []DebugLog `json:"debugLogs,omitempty"`
+	Favorite     bool       `json:"favorite,omitempty"`
+	Error        string     `json:"error,omitempty"`
+	CreatedAt    time.Time  `json:"createdAt"`
+	UpdatedAt    time.Time  `json:"updatedAt"`
+	StartedAt    time.Time  `json:"startedAt,omitempty"`
+	FinishedAt   time.Time  `json:"finishedAt,omitempty"`
+}
+
+type DebugLog struct {
+	Time       string         `json:"time"`
+	Level      string         `json:"level"`
+	Stage      string         `json:"stage"`
+	Message    string         `json:"message"`
+	ImageIndex int            `json:"imageIndex"`
+	Fields     map[string]any `json:"fields,omitempty"`
 }
 
 type Result struct {
@@ -297,6 +308,8 @@ func EventMeta(name string) Meta {
 		return Meta{"E120", name, "单图结果"}
 	case "heartbeat":
 		return Meta{"E130", name, "心跳保活"}
+	case "debug":
+		return Meta{"E140", name, "调试日志"}
 	case "done":
 		return Meta{"E300", name, "任务结束"}
 	default:

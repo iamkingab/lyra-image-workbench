@@ -424,6 +424,83 @@ textarea { resize: vertical; line-height: 1.55; }
   font-size: 12px;
   font-weight: 800;
 }
+.debug-log-panel {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #f8fafc;
+  margin: 12px 0;
+  padding: 10px 12px;
+}
+.debug-log-panel summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 900;
+}
+.debug-log-panel summary strong {
+  color: var(--muted);
+  font-size: 12px;
+}
+.debug-log-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  max-height: 360px;
+  overflow: auto;
+}
+.debug-log-item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  padding: 9px 10px;
+}
+.debug-log-item.error {
+  border-color: #fecaca;
+  background: #fff7f7;
+}
+.debug-log-item header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+}
+.debug-log-item header b {
+  color: var(--primary-2);
+  text-transform: uppercase;
+}
+.debug-log-item.error header b {
+  color: var(--error);
+}
+.debug-log-item header em {
+  font-style: normal;
+  color: var(--text);
+}
+.debug-log-item p {
+  margin: 6px 0 0;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 800;
+}
+.debug-log-item pre {
+  margin: 8px 0 0;
+  max-height: 220px;
+  overflow: auto;
+  border-radius: 10px;
+  background: #0f172a;
+  color: #dbeafe;
+  padding: 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 .banana-model-modal {
   width: min(780px, calc(100vw - 28px));
   max-height: min(760px, calc(100vh - 44px));
@@ -3907,6 +3984,8 @@ button:not(.primary) { background: var(--surface-soft); color: #1e3a8a; border: 
 :root[data-theme='dark'] .result-page .result-canvas,
 :root[data-theme='dark'] .result-page .canvas-header,
 :root[data-theme='dark'] .result-page .result-context,
+:root[data-theme='dark'] .debug-log-panel,
+:root[data-theme='dark'] .debug-log-item,
 :root[data-theme='dark'] .result-page .empty-state,
 :root[data-theme='dark'] .queue-sidebar,
 :root[data-theme='dark'] .queue-item,

@@ -22,6 +22,7 @@ export interface UserConfig {
 export interface AdminConfig {
   newApiBaseUrl: string
   publicBaseUrl: string
+  debugEnabled: boolean
   timeoutSec: number
   model: string
   modelLocked: boolean
@@ -73,6 +74,15 @@ export interface TaskResult {
   elapsedMs?: number
 }
 
+export interface DebugLog {
+  time: string
+  level: string
+  stage: string
+  message: string
+  imageIndex: number
+  fields?: Record<string, unknown>
+}
+
 export interface Task {
   id: string
   provider?: ModelProvider
@@ -95,6 +105,8 @@ export interface Task {
   stageCode: string
   progress: number
   results: TaskResult[]
+  debugEnabled?: boolean
+  debugLogs?: DebugLog[]
   favorite?: boolean
   error?: string
   createdAt: string

@@ -44,6 +44,7 @@ export function ResultCanvas({ task, onUseAsReference, onUploadPixhost, onOpenGe
       ) : (
         <>
           <ResultContext task={task} />
+          <DebugLogPanel task={task} />
           {hasTaskActions ? (
             <div className="result-action-row">
               {onReuse ? <button type="button" onClick={() => onReuse(task)}>复用参数</button> : null}
@@ -76,6 +77,39 @@ function ResultContext({ task }: { task: Task }) {
       <div className="param-chips" aria-label="生成参数">
         {taskParameters(task).map((item) => <span key={item}>{item}</span>)}
       </div>
+    </section>
+  )
+}
+
+function DebugLogPanel({ task }: { task: Task }) {
+  const logs = task.debugLogs || []
+  if (!task.debugEnabled && logs.length === 0) return null
+  return (
+    <section className="debug-log-panel" aria-label="Debug 日志">
+      <details open={logs.length > 0 && task.status !== 'succeeded'}>
+        <summary>
+          <span>Debug 日志</span>
+          <strong>{logs.length ? `${logs.length} 条` : '已开启，等待新日志'}</strong>
+        </summary>
+        {logs.length ? (
+          <div className="debug-log-list">
+            {logs.map((item, index) => (
+              <article key={`${item.time}-${index}`} className={`debug-log-item ${item.level || 'info'}`}>
+                <header>
+                  <b>{item.level || 'info'}</b>
+                  <span>{item.stage || 'debug'}</span>
+                  <time>{formatDebugTime(item.time)}</time>
+                  {item.imageIndex >= 0 ? <em>#{item.imageIndex + 1}</em> : null}
+                </header>
+                <p>{item.message}</p>
+                {item.fields ? <pre>{renderDebugFields(item.fields)}</pre> : null}
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="muted">Debug 只对开启后创建的新任务记录；不会显示 API Key 明文。</p>
+        )}
+      </details>
     </section>
   )
 }
@@ -286,6 +320,17 @@ function outputFormatLabel(value?: string) {
   const labels: Record<string, string> = { auto: '自动', png: 'PNG', jpeg: 'JPG', jpg: 'JPG', webp: 'WEBP' }
   if (!value) return 'PNG'
   return labels[value] || value.toUpperCase()
+}
+
+function formatDebugTime(value?: string) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleTimeString()
+}
+
+function renderDebugFields(fields: Record<string, unknown>) {
+  return JSON.stringify(fields, null, 2)
 }
 
 function flash(setNotice: (value: string) => void, value: string) {

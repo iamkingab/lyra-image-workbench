@@ -58,11 +58,11 @@ export async function getAdminConfig() {
   return data.config
 }
 
-export async function saveAdminConfig(newApiBaseUrl: string, timeoutSec: number, publicBaseUrl: string) {
+export async function saveAdminConfig(newApiBaseUrl: string, timeoutSec: number, publicBaseUrl: string, debugEnabled: boolean) {
   const data = await requestJson<{ ok: boolean; config: AdminConfig }>('/api/admin/config', {
     method: 'POST',
     headers: adminHeaders(),
-    body: JSON.stringify({ newApiBaseUrl, timeoutSec, publicBaseUrl }),
+    body: JSON.stringify({ newApiBaseUrl, timeoutSec, publicBaseUrl, debugEnabled }),
   }, '')
   return data.config
 }
