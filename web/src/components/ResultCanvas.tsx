@@ -5,8 +5,19 @@ import { errorReasonLabel } from '../lib/errorLabels'
 import { ImagePreviewModal } from './ImagePreviewModal'
 import { BANANA_PROVIDER, getBananaModelOption, providerLabel } from '../lib/models'
 
-export function ResultCanvas({ task, onUseAsReference, onUploadPixhost }: { task?: Task; onUseAsReference?: (src: string, index: number) => Promise<void>; onUploadPixhost?: (taskId: string, index: number) => Promise<void> }) {
+type ResultCanvasProps = {
+  task?: Task
+  onUseAsReference?: (src: string, index: number) => Promise<void>
+  onUploadPixhost?: (taskId: string, index: number) => Promise<void>
+  onOpenGenerate?: () => void
+  onOpenQueue?: () => void
+  onReuse?: (task: Task) => void
+  onRetry?: (id: string) => void
+}
+
+export function ResultCanvas({ task, onUseAsReference, onUploadPixhost, onOpenGenerate, onOpenQueue, onReuse, onRetry }: ResultCanvasProps) {
   const okCount = task?.results.filter((item) => item.ok).length || 0
+  const hasFailed = task?.results.some((item) => !item.ok) || ['failed', 'partial_failed', 'cancelled', 'interrupted'].includes(task?.status || '')
   return (
     <section className="result-canvas">
       <header className="canvas-header">
@@ -20,12 +31,21 @@ export function ResultCanvas({ task, onUseAsReference, onUploadPixhost }: { task
 
       {!task ? (
         <div className="empty-state">
-          <strong>从底部请求栏开始生成</strong>
-          <span>输入提示词，选择 Image-2 或 Banana，点击生成后结果会固定显示在这里。刷新页面也能恢复历史结果。</span>
+          <strong>先到“生成”标签提交任务</strong>
+          <span>提交文生图或图生图后，当前任务的图片、进度和操作会固定显示在这里。刷新页面也能恢复历史结果。</span>
+          <div className="empty-actions">
+            <button type="button" className="primary" onClick={onOpenGenerate}>去生成</button>
+            <button type="button" onClick={onOpenQueue}>查看队列</button>
+          </div>
         </div>
       ) : (
         <>
           <ResultContext task={task} />
+          <div className="result-action-row">
+            <button type="button" onClick={() => onReuse?.(task)}>复用参数</button>
+            <button type="button" onClick={onOpenQueue}>查看队列</button>
+            {hasFailed ? <button type="button" onClick={() => onRetry?.(task.id)}>重试失败任务</button> : null}
+          </div>
           <div className="result-grid">
             {Array.from({ length: task.count }, (_, index) => {
               const result = task.results.find((item) => item.index === index)
@@ -41,10 +61,13 @@ export function ResultCanvas({ task, onUseAsReference, onUploadPixhost }: { task
 function ResultContext({ task }: { task: Task }) {
   return (
     <section className="result-context" aria-label="生成请求信息">
-      <div className="result-prompt">
-        <span>提示词</span>
+      <details className="result-prompt" open={(task.prompt || '').length <= 120}>
+        <summary>
+          <span>提示词</span>
+          <strong>{task.prompt ? compactPrompt(task.prompt) : '（无提示词）'}</strong>
+        </summary>
         <p>{task.prompt || '（无提示词）'}</p>
-      </div>
+      </details>
       <div className="param-chips" aria-label="生成参数">
         {taskParameters(task).map((item) => <span key={item}>{item}</span>)}
       </div>
@@ -197,6 +220,11 @@ function extensionFromMime(mime: string) {
   if (mime.includes('webp')) return 'webp'
   if (mime.includes('gif')) return 'gif'
   return 'png'
+}
+
+function compactPrompt(prompt: string) {
+  const text = prompt.trim().replace(/\s+/g, ' ')
+  return text.length > 96 ? `${text.slice(0, 96)}...` : text
 }
 
 function taskParameters(task: Task) {

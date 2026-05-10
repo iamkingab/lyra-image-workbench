@@ -3025,3 +3025,273 @@ button:not(.primary) { background: var(--surface-soft); color: #1e3a8a; border: 
     min-width: calc(50% - 4px);
   }
 }
+
+/* 工作台 v5：用户习惯型分步生成流和标签状态 */
+.tabbed-workbench {
+  background: #f8fafc;
+}
+.tabbed-workbench .workbench-topbar {
+  min-height: 48px;
+  gap: 10px;
+  padding-bottom: 8px;
+  margin-bottom: 0;
+}
+.tabbed-workbench .brand-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  font-size: 13px;
+}
+.tabbed-workbench .brand h1 { font-size: 17px; }
+.tabbed-workbench .brand p { font-size: 12px; }
+.workflow-tabs {
+  max-width: 1180px;
+  width: 100%;
+  margin: 0 auto;
+  gap: 5px;
+  padding: 4px;
+  border-radius: 14px;
+  box-shadow: none;
+}
+.workflow-tabs button {
+  position: relative;
+  min-height: 40px;
+  border-radius: 10px;
+  padding: 5px 8px;
+}
+.workflow-tabs button strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+}
+.workflow-tabs button strong i {
+  min-width: 16px;
+  height: 16px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 10px;
+  font-style: normal;
+  line-height: 1;
+  padding: 0 4px;
+}
+.workflow-tabs button.tone-danger:not(.active) strong i {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+.workflow-tabs button.tone-active:not(.active) strong i {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+.workflow-tabs button.active strong i {
+  background: rgba(255,255,255,.2);
+  color: #fff;
+}
+.workflow-tabs button.tone-danger:not(.active) span { color: #b91c1c; }
+.workflow-tabs button.tone-active:not(.active) span { color: #1d4ed8; }
+.generate-flow {
+  display: block;
+}
+.generate-flow-form {
+  display: grid;
+  gap: 12px;
+}
+.generate-step {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #fff;
+  padding: 13px;
+}
+.generate-step-title {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+.generate-step-title > b {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #111827;
+  color: #fff;
+  font-size: 13px;
+}
+.generate-step-title div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.generate-step-title strong {
+  color: var(--text);
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+.generate-step-title span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.generate-page .composer-primary-row,
+.generate-page .composer-control-row,
+.generate-page .composer-control-left {
+  display: contents;
+}
+.generate-page .composer-prompt {
+  display: grid;
+  gap: 6px;
+}
+.generate-page .composer-prompt > span,
+.generate-page .composer-mini-field > span {
+  color: #334155;
+  font-size: 12px;
+  font-weight: 900;
+}
+.generate-page .composer-prompt textarea {
+  min-height: 136px;
+  max-height: 320px;
+  resize: vertical;
+  border-radius: 14px;
+}
+.prompt-helper-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.prompt-helper-row .prompt-assistant-trigger {
+  width: auto;
+  min-height: 34px;
+  border-radius: 999px;
+  padding: 0 12px;
+}
+.prompt-helper-row span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.generate-control-grid {
+  display: grid;
+  gap: 10px;
+  align-items: stretch;
+}
+.generate-control-grid.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.generate-control-grid.spec-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.generate-control-grid .mode-tabs,
+.generate-control-grid .size-selector-button,
+.generate-control-grid .banana-model-button,
+.generate-control-grid .quality-list,
+.generate-control-grid .format-list {
+  width: 100%;
+}
+.reference-step .upload-section {
+  padding: 0;
+  border: 0;
+}
+.reference-step .upload-title-row {
+  display: none;
+}
+.reference-step .merge-direction-box {
+  border-style: solid;
+  background: #f8fafc;
+}
+.execute-grid {
+  display: grid;
+  grid-template-columns: 140px 140px minmax(220px, 1fr) 148px;
+  gap: 10px;
+  align-items: stretch;
+}
+.submit-readiness {
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #f8fafc;
+  padding: 8px 10px;
+}
+.submit-readiness strong {
+  font-size: 13px;
+}
+.submit-readiness span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.submit-readiness.ready {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+.submit-readiness.ready strong { color: #166534; }
+.submit-readiness.missing {
+  border-color: #fed7aa;
+  background: #fff7ed;
+}
+.submit-readiness.missing strong,
+.submit-readiness.missing span { color: #9a3412; }
+.generate-page .execute-step .generate-submit {
+  display: block;
+  min-height: 48px;
+  width: 100%;
+  margin: 0;
+  border-radius: 13px;
+  font-size: 15px;
+}
+.generate-page .ok,
+.generate-page .error {
+  margin: 0;
+}
+
+@media (max-width: 980px) {
+  .tabbed-workbench .workbench-topbar {
+    gap: 8px;
+  }
+  .mobile-tabs {
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    padding: 4px;
+    border-radius: 16px;
+    box-shadow: 0 6px 20px rgba(15,23,42,.1);
+  }
+  .mobile-tabs button {
+    min-height: 40px;
+  }
+  .generate-control-grid.two,
+  .generate-control-grid.spec-grid,
+  .execute-grid {
+    grid-template-columns: 1fr;
+  }
+  .prompt-helper-row .prompt-assistant-trigger {
+    width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .generate-step {
+    padding: 11px;
+    border-radius: 14px;
+  }
+  .generate-step-title {
+    grid-template-columns: 26px minmax(0, 1fr);
+  }
+  .generate-step-title > b {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    font-size: 12px;
+  }
+  .workflow-tabs button strong i {
+    min-width: 14px;
+    height: 14px;
+    font-size: 9px;
+  }
+}

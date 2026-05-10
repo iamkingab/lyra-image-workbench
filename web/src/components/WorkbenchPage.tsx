@@ -17,8 +17,9 @@ import { BANANA_PROVIDER, DEFAULT_BANANA_MODEL, DEFAULT_IMAGE2_MODEL, getBananaM
 
 type NumericInputValue = number | ''
 type WorkbenchTab = 'generate' | 'result' | 'queue' | 'assistant' | 'settings'
+type WorkbenchTabItem = { id: WorkbenchTab; label: string; hint: string; badge?: string; tone?: 'normal' | 'danger' | 'active' }
 
-const workflowTabs: Array<{ id: WorkbenchTab; label: string; hint: string }> = [
+const workflowTabs: WorkbenchTabItem[] = [
   { id: 'generate', label: '生成', hint: '请求' },
   { id: 'result', label: '结果', hint: '图片' },
   { id: 'queue', label: '队列', hint: '历史' },
@@ -59,6 +60,15 @@ export function WorkbenchPage() {
   const favoriteIds = useMemo(() => new Set(tasks.filter((task) => task.favorite).map((task) => task.id)), [tasks])
   const currentKeyReady = provider === BANANA_PROVIDER ? bananaKeyReady : keyReady
   const currentKeyPreview = provider === BANANA_PROVIDER ? bananaKeyPreview : keyPreview
+  const activeCount = useMemo(() => tasks.filter((task) => !isFinal(task)).length, [tasks])
+  const missingKeyCount = (keyReady ? 0 : 1) + (bananaKeyReady ? 0 : 1)
+  const tabItems = useMemo<WorkbenchTabItem[]>(() => workflowTabs.map((tab) => {
+    if (tab.id === 'generate') return { ...tab, hint: currentKeyReady ? '可提交' : '缺 Key', tone: currentKeyReady ? 'normal' : 'danger' }
+    if (tab.id === 'result') return { ...tab, hint: activeTask ? activeTask.statusText : '图片', badge: activeTask ? `${activeTask.progress}%` : undefined, tone: activeTask && !isFinal(activeTask) ? 'active' : 'normal' }
+    if (tab.id === 'queue') return { ...tab, hint: activeCount ? `${activeCount} 进行中` : '历史', badge: activeCount ? String(activeCount) : undefined, tone: activeCount ? 'active' : 'normal' }
+    if (tab.id === 'settings') return { ...tab, hint: missingKeyCount ? `${missingKeyCount} 个未设` : '已配置', badge: missingKeyCount ? '!' : undefined, tone: missingKeyCount ? 'danger' : 'normal' }
+    return tab
+  }), [activeCount, activeTask, currentKeyReady, missingKeyCount])
 
   const upsertTask = useCallback((task: Task) => {
     setTasks((prev) => {
@@ -389,16 +399,16 @@ export function WorkbenchPage() {
         <nav className="top-actions"><a className="ghost-link" href="/admin">Admin</a><button onClick={logout}>退出空间</button></nav>
       </header>
 
-      <WorkbenchTabs activeTab={activeTab} onChange={setActiveTab} className="workflow-tabs desktop-tabs" />
+      <WorkbenchTabs tabs={tabItems} activeTab={activeTab} onChange={setActiveTab} className="workflow-tabs desktop-tabs" />
 
       <main className={`workflow-content workflow-${activeTab}`}>
         {activeTab === 'generate' ? (
           <section className="workflow-page generate-page" data-generation-composer>
-            <PageHeader eyebrow="Generate" title="生成请求" description="按顺序设置模型、提示词、参考图和规格。提交后自动进入结果页，后端继续执行。" />
+            <PageHeader eyebrow="Generate" title="生成请求" description="按“提示词 → 模型 → 参考图 → 规格 → 执行”的顺序提交任务。提交后自动进入结果页，后端继续执行。" />
             {!currentKeyReady ? (
               <div className="key-warning">
                 <strong>{provider === BANANA_PROVIDER ? 'Banana Key 未设置' : 'codex-key 未设置'}</strong>
-                <span>当前模型分组还没有可用 Key，先到设置页保存后再提交。</span>
+                <span>当前模型还没有可用 Key，先去设置保存后再生成。</span>
                 <button type="button" onClick={() => setActiveTab('settings')}>去设置</button>
               </div>
             ) : null}
@@ -441,7 +451,15 @@ export function WorkbenchPage() {
 
         {activeTab === 'result' ? (
           <section className="workflow-page result-page">
-            <ResultCanvas task={activeTask} onUseAsReference={handleUseResultAsReference} onUploadPixhost={handleUploadPixhost} />
+            <ResultCanvas
+              task={activeTask}
+              onUseAsReference={handleUseResultAsReference}
+              onUploadPixhost={handleUploadPixhost}
+              onOpenGenerate={() => setActiveTab('generate')}
+              onOpenQueue={() => setActiveTab('queue')}
+              onReuse={handleReuseTask}
+              onRetry={(id) => void handleRetry(id)}
+            />
           </section>
         ) : null}
 
@@ -501,7 +519,7 @@ export function WorkbenchPage() {
         ) : null}
       </main>
 
-      <WorkbenchTabs activeTab={activeTab} onChange={setActiveTab} className="workflow-tabs mobile-tabs" />
+      <WorkbenchTabs tabs={tabItems} activeTab={activeTab} onChange={setActiveTab} className="workflow-tabs mobile-tabs" />
 
       {detailTask ? (
         <TaskDetailModal
@@ -531,12 +549,12 @@ function PageHeader({ eyebrow, title, description }: { eyebrow: string; title: s
   )
 }
 
-function WorkbenchTabs({ activeTab, onChange, className }: { activeTab: WorkbenchTab; onChange: (tab: WorkbenchTab) => void; className: string }) {
+function WorkbenchTabs({ tabs = workflowTabs, activeTab, onChange, className }: { tabs?: WorkbenchTabItem[]; activeTab: WorkbenchTab; onChange: (tab: WorkbenchTab) => void; className: string }) {
   return (
     <nav className={className} aria-label="工作流标签页">
-      {workflowTabs.map((tab) => (
-        <button key={tab.id} type="button" className={activeTab === tab.id ? 'active' : ''} onClick={() => onChange(tab.id)}>
-          <strong>{tab.label}</strong>
+      {tabs.map((tab) => (
+        <button key={tab.id} type="button" className={`${activeTab === tab.id ? 'active' : ''} ${tab.tone ? `tone-${tab.tone}` : ''}`} onClick={() => onChange(tab.id)}>
+          <strong>{tab.label}{tab.badge ? <i>{tab.badge}</i> : null}</strong>
           <span>{tab.hint}</span>
         </button>
       ))}
