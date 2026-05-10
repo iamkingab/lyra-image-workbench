@@ -18,6 +18,7 @@ type ResultCanvasProps = {
 export function ResultCanvas({ task, onUseAsReference, onUploadPixhost, onOpenGenerate, onOpenQueue, onReuse, onRetry }: ResultCanvasProps) {
   const okCount = task?.results.filter((item) => item.ok).length || 0
   const hasFailed = task?.results.some((item) => !item.ok) || ['failed', 'partial_failed', 'cancelled', 'interrupted'].includes(task?.status || '')
+  const hasTaskActions = Boolean(onReuse || onOpenQueue || (hasFailed && onRetry))
   return (
     <section className="result-canvas">
       <header className="canvas-header">
@@ -33,19 +34,23 @@ export function ResultCanvas({ task, onUseAsReference, onUploadPixhost, onOpenGe
         <div className="empty-state">
           <strong>先到“生成”标签提交任务</strong>
           <span>提交文生图或图生图后，当前任务的图片、进度和操作会固定显示在这里。刷新页面也能恢复历史结果。</span>
-          <div className="empty-actions">
-            <button type="button" className="primary" onClick={onOpenGenerate}>去生成</button>
-            <button type="button" onClick={onOpenQueue}>查看队列</button>
-          </div>
+          {onOpenGenerate || onOpenQueue ? (
+            <div className="empty-actions">
+              {onOpenGenerate ? <button type="button" className="primary" onClick={onOpenGenerate}>去生成</button> : null}
+              {onOpenQueue ? <button type="button" onClick={onOpenQueue}>查看队列</button> : null}
+            </div>
+          ) : null}
         </div>
       ) : (
         <>
           <ResultContext task={task} />
-          <div className="result-action-row">
-            <button type="button" onClick={() => onReuse?.(task)}>复用参数</button>
-            <button type="button" onClick={onOpenQueue}>查看队列</button>
-            {hasFailed ? <button type="button" onClick={() => onRetry?.(task.id)}>重试失败任务</button> : null}
-          </div>
+          {hasTaskActions ? (
+            <div className="result-action-row">
+              {onReuse ? <button type="button" onClick={() => onReuse(task)}>复用参数</button> : null}
+              {onOpenQueue ? <button type="button" onClick={onOpenQueue}>查看队列</button> : null}
+              {hasFailed && onRetry ? <button type="button" onClick={() => onRetry(task.id)}>重试失败任务</button> : null}
+            </div>
+          ) : null}
           <div className="result-grid">
             {Array.from({ length: task.count }, (_, index) => {
               const result = task.results.find((item) => item.index === index)

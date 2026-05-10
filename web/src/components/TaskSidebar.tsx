@@ -107,7 +107,7 @@ export function TaskSidebar({
         {!filteredTasks.length ? (
           <div className="queue-empty">
             <strong>{tasks.length ? '没有匹配任务' : '还没有任务'}</strong>
-            <span>{tasks.length ? '换个筛选或关键词试试。' : '在底部输入提示词，提交后会出现在这里。'}</span>
+            <span>{tasks.length ? '换个筛选或关键词试试。' : '还没有任务，去“生成”标签提交第一条请求。'}</span>
           </div>
         ) : filteredTasks.map((task) => (
           <TaskQueueItem
@@ -159,6 +159,10 @@ function TaskQueueItem({ task, active, favorite, selected, onSelect, onOpenDetai
         </label>
       </div>
       <div className="queue-item-main">
+        <div className="queue-status-line">
+          <span className={`status-pill ${task.status}`}>{task.statusText} / {task.statusCode}</span>
+          <small>{okCount}/{task.count || 1} · {formatElapsed(task)}</small>
+        </div>
         <div className="queue-title-line">
           <strong>{task.prompt || '未填写提示词'}</strong>
           <button type="button" className={`favorite-btn ${favorite ? 'active' : ''}`} onClick={(event) => { event.stopPropagation(); onToggleFavorite() }}>★</button>
@@ -167,7 +171,6 @@ function TaskQueueItem({ task, active, favorite, selected, onSelect, onOpenDetai
           <span>{task.mode === 'image-to-image' ? '图生图' : '文生图'}</span>
           <span>{providerLabel(task.provider)}</span>
           <span>{modelLabel}</span>
-          <span>{task.statusText} / {task.statusCode}</span>
         </div>
         <progress value={task.progress} max={100} />
         <div className="queue-meta">
