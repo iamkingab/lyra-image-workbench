@@ -51,11 +51,106 @@ git --version
 
 ## 3. 拉取和构建项目
 
-进入宝塔终端或 SSH：
+### 3.1 私有仓库怎么拉
+
+如果这个 GitHub 仓库是私有项目，服务器不能直接 `git clone https://github.com/...`，需要先给服务器授权。
+
+推荐用 **SSH Deploy Key**，不要把你的 GitHub 主账号密码或长期 Token 写进命令里。
+
+在服务器终端执行：
+
+```bash
+ssh-keygen -t ed25519 -C "image-workbench-baota" -f ~/.ssh/image_workbench_deploy
+cat ~/.ssh/image_workbench_deploy.pub
+```
+
+复制输出的公钥，然后到 GitHub：
+
+```text
+仓库页面 -> Settings -> Deploy keys -> Add deploy key
+```
+
+填写：
+
+```text
+Title: baota-image-workbench
+Key: 粘贴刚才 cat 出来的公钥
+Allow write access: 不勾选
+```
+
+然后在服务器配置 SSH：
+
+```bash
+cat >> ~/.ssh/config <<'EOF'
+Host github-image-workbench
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/image_workbench_deploy
+  IdentitiesOnly yes
+EOF
+
+chmod 600 ~/.ssh/config
+ssh -T github-image-workbench
+```
+
+看到类似 `successfully authenticated` 就可以拉私有仓库。
+
+私有仓库 clone 地址用这个：
+
+```bash
+git clone git@github-image-workbench:y08lin4/image-Workbench-Localhost-Version.git /www/wwwroot/image-workbench
+```
+
+> 不推荐把 GitHub Token 直接写到 `https://token@github.com/...` 里，因为容易留在 shell 历史、宝塔日志或 `.git/config`。
+
+### 3.2 一键脚本方式
+
+如果已经配置好 Deploy Key，可以先 clone，再运行项目内置脚本：
+
+```bash
+cd /www/wwwroot
+git clone git@github-image-workbench:y08lin4/image-Workbench-Localhost-Version.git image-workbench
+cd /www/wwwroot/image-workbench
+bash scripts/deploy-baota.sh
+```
+
+如果仓库是公开仓库，也可以直接：
 
 ```bash
 cd /www/wwwroot
 git clone https://github.com/y08lin4/image-Workbench-Localhost-Version.git image-workbench
+cd /www/wwwroot/image-workbench
+bash scripts/deploy-baota.sh
+```
+
+脚本会自动：
+
+- 拉取/更新代码。
+- 构建 `web/dist`。
+- 构建 Linux 后端二进制。
+- 创建 `data/`、`outputs/`。
+- 授权给 `www` 用户。
+- 输出宝塔「添加 Go 项目」应该填写的字段。
+
+如果你想让应用直接监听公网端口，可以这样跑脚本：
+
+```bash
+LOCAL_IMAGE_HOST=0.0.0.0 bash scripts/deploy-baota.sh
+```
+
+如果要跳过测试：
+
+```bash
+SKIP_TEST=1 bash scripts/deploy-baota.sh
+```
+
+### 3.3 手动方式
+
+进入宝塔终端或 SSH：
+
+```bash
+cd /www/wwwroot
+git clone git@github-image-workbench:y08lin4/image-Workbench-Localhost-Version.git image-workbench
 cd /www/wwwroot/image-workbench
 ```
 
@@ -247,7 +342,16 @@ gemini-3.1-flash-image-preview-1x1-2k
 
 ## 8. 升级流程
 
-宝塔面板里先停止 Go 项目，然后终端执行：
+宝塔面板里先停止 Go 项目。
+
+如果你用一键脚本，执行：
+
+```bash
+cd /www/wwwroot/image-workbench
+bash scripts/deploy-baota.sh
+```
+
+如果你手动升级，执行：
 
 ```bash
 cd /www/wwwroot/image-workbench
@@ -401,4 +505,3 @@ rm /www/wwwroot/image-workbench/data/admin.auth.json
 9. 图生图能上传参考图并提交任务。
 10. 刷新页面后历史任务和结果仍在。
 11. 提示词助手能生成提示词，并能选择应用到 Image-2 或 Banana。
-
