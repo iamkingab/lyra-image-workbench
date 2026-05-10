@@ -65,7 +65,7 @@ export function TaskSidebar({
   }), [tasks])
 
   return (
-    <section className="queue-sidebar" aria-label="任务队列">
+    <section className={`queue-sidebar ${selectedIds.size ? 'has-selection' : ''}`} aria-label="任务队列">
       <header className="queue-header">
         <div>
           <p className="eyebrow">Queue</p>
