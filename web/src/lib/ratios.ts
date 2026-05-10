@@ -2,7 +2,7 @@ export const RATIOS = ['auto', '1:1', '2:3', '3:2', '3:4', '4:3', '9:16', '16:9'
 export const FIXED_RATIOS = ['1:1', '2:3', '3:2', '3:4', '4:3', '9:16', '16:9'] as const
 export const RESOLUTION_TIERS = ['auto', 'standard', '2k', '4k'] as const
 export const QUALITY_LEVELS = ['auto', 'low', 'medium', 'high'] as const
-export const OUTPUT_FORMATS = ['png', 'jpeg', 'webp'] as const
+export const OUTPUT_FORMATS = ['auto', 'png', 'jpeg', 'webp'] as const
 
 export type AspectRatio = typeof RATIOS[number]
 export type FixedRatio = typeof FIXED_RATIOS[number]
@@ -25,6 +25,7 @@ export const QUALITY_LABEL: Record<QualityLevel, string> = {
 }
 
 export const OUTPUT_FORMAT_LABEL: Record<OutputFormat, string> = {
+  auto: '自动',
   png: 'PNG',
   jpeg: 'JPG',
   webp: 'WEBP',

@@ -130,7 +130,7 @@ func TestManagerRoutesBananaModelWithSeparateKey(t *testing.T) {
 		if payload["model"] != "gemini-3.1-flash-image-preview-16x9-4k" {
 			t.Fatalf("unexpected banana model: %+v", payload)
 		}
-		for _, key := range []string{"size", "quality", "output_format"} {
+		for _, key := range []string{"size", "quality", "output_format", "response_format"} {
 			if _, ok := payload[key]; ok {
 				t.Fatalf("%s should not be sent for banana model-encoded specs: %+v", key, payload)
 			}

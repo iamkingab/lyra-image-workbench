@@ -164,7 +164,7 @@ textarea { resize: vertical; line-height: 1.55; }
 .ratio-icon { border: 1.7px solid currentColor; border-radius: 3px; display: block; }
 .resolution-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .quality-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.format-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.format-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .resolution-btn, .quality-btn, .format-btn {
   border: 1px solid var(--border);
   background: var(--surface);
@@ -1321,7 +1321,7 @@ button:not(.primary) { background: var(--surface-soft); color: #1e3a8a; border: 
   flex: none;
 }
 .gallery-shell .composer-control-left .format-list {
-  width: 138px;
+  width: 184px;
   flex: none;
 }
 .gallery-shell .prompt-assistant-trigger {
