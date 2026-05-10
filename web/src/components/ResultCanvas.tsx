@@ -77,11 +77,11 @@ function ResultContext({ task }: { task: Task }) {
         <p>{task.prompt || '（无提示词）'}</p>
       </details>
       {revisedPrompts.length ? (
-        <div className="result-revised-prompts" aria-label="上游改写提示词">
+        <div className="result-revised-prompts" aria-label="模型返回提示词">
           {revisedPrompts.map((nextPrompt, index) => (
             <details key={`${index}-${nextPrompt}`} className="result-prompt result-revised-prompt" open={revisedPrompts.length === 1}>
               <summary>
-                <span>{revisedPrompts.length > 1 ? `上游改写 ${index + 1}` : '上游改写提示词'}</span>
+                <span>{revisedPrompts.length > 1 ? `模型返回提示词 ${index + 1}` : '模型返回提示词'}</span>
                 <strong>{compactPrompt(nextPrompt)}</strong>
               </summary>
               <p>{nextPrompt}</p>
