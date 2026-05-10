@@ -30,9 +30,6 @@ func TestGenerateParsesB64JSON(t *testing.T) {
 		if body["model"] != "gpt-image-2" || body["prompt"] != "cat" || body["n"].(float64) != 1 || body["quality"] != "high" || body["output_format"] != "jpeg" {
 			t.Fatalf("unexpected request body: %+v", body)
 		}
-		if _, ok := body["response_format"]; ok {
-			t.Fatalf("response_format should not be forced for NewAPI compatibility: %+v", body)
-		}
 		_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]string{{
 			"b64_json":       base64.StdEncoding.EncodeToString(want),
 			"revised_prompt": "a revised cat",
@@ -76,7 +73,7 @@ func TestGenerateCanSkipImageParamsForModelEncodedSpecs(t *testing.T) {
 		if body["model"] != "gemini-3.1-flash-image-preview-16x9-4k" {
 			t.Fatalf("unexpected model: %+v", body)
 		}
-		for _, key := range []string{"size", "quality", "output_format", "response_format"} {
+		for _, key := range []string{"size", "quality", "output_format"} {
 			if _, ok := body[key]; ok {
 				t.Fatalf("%s should not be sent for model-encoded specs: %+v", key, body)
 			}
@@ -106,47 +103,6 @@ func TestGenerateCanSkipImageParamsForModelEncodedSpecs(t *testing.T) {
 	}
 	if string(image.Bytes) != "banana" {
 		t.Fatalf("Generate() image = %+v", image)
-	}
-}
-
-func TestGenerateOmitsAutoOptionalParams(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var body map[string]any
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			t.Fatalf("decode request body: %v", err)
-		}
-		if body["model"] != "gpt-image-2" || body["prompt"] != "minimal" || body["n"].(float64) != 1 || body["size"] != "1024x1024" {
-			t.Fatalf("unexpected request body: %+v", body)
-		}
-		for _, key := range []string{"quality", "output_format", "response_format"} {
-			if _, ok := body[key]; ok {
-				t.Fatalf("%s should be omitted when set to auto: %+v", key, body)
-			}
-		}
-		_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]string{{
-			"b64_json": base64.StdEncoding.EncodeToString([]byte("\x89PNG\r\n\x1a\npng")),
-		}}})
-	}))
-	defer server.Close()
-
-	client := NewClient()
-	client.httpClient = server.Client()
-	image, err := client.Generate(context.Background(), Request{
-		Mode:         "text-to-image",
-		BaseURL:      server.URL,
-		APIKey:       "sk-test",
-		Model:        "gpt-image-2",
-		Prompt:       "minimal",
-		Size:         "1024x1024",
-		Quality:      "auto",
-		OutputFormat: "auto",
-		TimeoutSec:   60,
-	})
-	if err != nil {
-		t.Fatalf("Generate() error = %v", err)
-	}
-	if image.Mime != "image/png" || image.OutputFormat != "png" {
-		t.Fatalf("Generate() image metadata = %+v", image)
 	}
 }
 
@@ -206,7 +162,7 @@ func TestEditImageSendsMultipartImages(t *testing.T) {
 		if err := r.ParseMultipartForm(4 << 20); err != nil {
 			t.Fatalf("ParseMultipartForm() error = %v", err)
 		}
-		if r.FormValue("model") != "gpt-image-2" || r.FormValue("prompt") != "edit prompt" || r.FormValue("response_format") != "" || r.FormValue("quality") != "medium" || r.FormValue("output_format") != "webp" {
+		if r.FormValue("model") != "gpt-image-2" || r.FormValue("prompt") != "edit prompt" || r.FormValue("response_format") != "b64_json" || r.FormValue("quality") != "medium" || r.FormValue("output_format") != "webp" {
 			t.Fatalf("unexpected form values: %+v", r.MultipartForm.Value)
 		}
 		files := r.MultipartForm.File["image[]"]

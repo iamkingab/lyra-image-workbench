@@ -646,14 +646,14 @@ func normalizeQuality(value string) string {
 
 func normalizeOutputFormat(value string) string {
 	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "", "auto":
+	case "auto":
 		return "auto"
 	case "jpg", "jpeg":
 		return "jpeg"
 	case "png", "webp":
 		return strings.ToLower(strings.TrimSpace(value))
 	default:
-		return "auto"
+		return "png"
 	}
 }
 

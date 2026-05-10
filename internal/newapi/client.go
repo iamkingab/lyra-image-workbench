@@ -83,19 +83,18 @@ func (c *Client) Generate(ctx context.Context, req Request) (Image, error) {
 func (c *Client) generateText(ctx context.Context, req Request) (Image, error) {
 	outputFormat := normalizeOutputFormat(req.OutputFormat)
 	body := map[string]any{
-		"model":  req.Model,
-		"prompt": req.Prompt,
-		"n":      1,
+		"model":           req.Model,
+		"prompt":          req.Prompt,
+		"n":               1,
+		"response_format": "b64_json",
 	}
 	if !req.SkipImageParams {
-		if outputFormat != "auto" {
-			body["output_format"] = outputFormat
-		}
+		body["output_format"] = outputFormat
 		if req.Size != "" && req.Size != "自动" && req.Size != "auto" {
 			body["size"] = req.Size
 		}
-		if quality := normalizeQuality(req.Quality); quality != "auto" {
-			body["quality"] = quality
+		if req.Quality != "" {
+			body["quality"] = normalizeQuality(req.Quality)
 		}
 	}
 	payload, err := json.Marshal(body)
@@ -122,15 +121,14 @@ func (c *Client) editImage(ctx context.Context, req Request) (Image, error) {
 	_ = writer.WriteField("model", req.Model)
 	_ = writer.WriteField("prompt", req.Prompt)
 	_ = writer.WriteField("n", "1")
+	_ = writer.WriteField("response_format", "b64_json")
 	if !req.SkipImageParams {
-		if outputFormat != "auto" {
-			_ = writer.WriteField("output_format", outputFormat)
-		}
+		_ = writer.WriteField("output_format", outputFormat)
 		if req.Size != "" && req.Size != "自动" && req.Size != "auto" {
 			_ = writer.WriteField("size", req.Size)
 		}
-		if quality := normalizeQuality(req.Quality); quality != "auto" {
-			_ = writer.WriteField("quality", quality)
+		if req.Quality != "" {
+			_ = writer.WriteField("quality", normalizeQuality(req.Quality))
 		}
 	}
 	for idx, input := range req.InputImages {
@@ -220,10 +218,7 @@ func (c *Client) doAndParse(ctx context.Context, req *http.Request, requestedFor
 			if err != nil {
 				return Image{}, err
 			}
-			outputFormat := normalizeOutputFormat(firstNonEmpty(item.OutputFormat, payload.OutputFormat, requestedFormat))
-			if outputFormat == "auto" {
-				outputFormat = outputFormatFromMime(detectImageMime(data))
-			}
+			outputFormat := normalizeOutputFormat(firstNonEmpty(item.OutputFormat, payload.OutputFormat, requestedFormat, "png"))
 			return Image{
 				Bytes:         data,
 				Mime:          mimeFromOutputFormat(outputFormat),
@@ -322,8 +317,6 @@ func normalizeQuality(value string) string {
 
 func normalizeOutputFormat(value string) string {
 	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "", "auto":
-		return "auto"
 	case "jpg", "jpeg":
 		return "jpeg"
 	case "webp":
@@ -331,7 +324,7 @@ func normalizeOutputFormat(value string) string {
 	case "png":
 		return "png"
 	default:
-		return "auto"
+		return "png"
 	}
 }
 
@@ -344,14 +337,6 @@ func mimeFromOutputFormat(format string) string {
 	default:
 		return "image/png"
 	}
-}
-
-func detectImageMime(data []byte) string {
-	mime := strings.ToLower(strings.TrimSpace(http.DetectContentType(data)))
-	if strings.HasPrefix(mime, "image/") {
-		return strings.Split(mime, ";")[0]
-	}
-	return "image/png"
 }
 
 func firstNonEmpty(values ...string) string {
