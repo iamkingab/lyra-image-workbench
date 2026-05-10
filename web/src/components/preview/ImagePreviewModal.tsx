@@ -66,12 +66,12 @@ export function ImagePreviewModal({ src, title, bytes, onCopyImage, onCopyUrl, o
     window.setTimeout(() => setNotice(''), 1800)
   }
 
-  const sizeLabel = byteSize ? formatBytes(byteSize) : '?????'
+  const sizeLabel = byteSize ? formatBytes(byteSize) : '\u8bfb\u53d6\u5927\u5c0f\u4e2d'
 
   return createPortal(
     <div className="image-preview-mask" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <section className="image-preview-shell" role="dialog" aria-modal="true" aria-label={title}>
-        <button type="button" className="image-preview-close" onClick={onClose} aria-label="????">?</button>
+        <button type="button" className="image-preview-close" onClick={onClose} aria-label={'\u5173\u95ed\u9884\u89c8'}>{'\u00d7'}</button>
         <PreviewMetaBar dimensions={dimensions} byteSizeLabel={sizeLabel} />
         <PreviewImageStage src={src} title={title} onDimensions={setDimensions} />
         {notice ? <div className="image-preview-toast" role="status">{notice}</div> : null}
