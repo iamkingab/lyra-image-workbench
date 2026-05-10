@@ -819,7 +819,7 @@ progress { width: 100%; height: 8px; accent-color: var(--primary-2); }
   height: 100dvh;
   padding: 18px 28px calc(18px + env(safe-area-inset-bottom));
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 12px;
   align-items: stretch;
   justify-items: center;
@@ -827,15 +827,17 @@ progress { width: 100%; height: 8px; accent-color: var(--primary-2); }
 .preview-stage {
   min-height: 0;
   width: 100%;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
 }
 .preview-stage img {
   width: auto !important;
   height: auto !important;
-  max-width: min(100%, calc(100vw - 56px));
-  max-height: min(100%, calc(100dvh - 132px));
+  max-width: none;
+  max-height: none;
+  flex: none;
   object-fit: contain;
   display: block;
   border-radius: 12px;
@@ -886,6 +888,11 @@ progress { width: 100%; height: 8px; accent-color: var(--primary-2); }
   overflow: auto;
 }
 .preview-notice {
+  position: absolute;
+  left: 50%;
+  bottom: calc(70px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 2;
   min-height: 28px;
   display: inline-flex;
   align-items: center;
@@ -1035,6 +1042,10 @@ button:not(.primary) { background: var(--surface-soft); color: #1e3a8a; border: 
     width: 100%;
     overflow: auto;
     justify-content: flex-start;
+  }
+  .preview-notice {
+    bottom: calc(58px + env(safe-area-inset-bottom));
+    max-width: calc(100vw - 24px);
   }
   .preview-actions button { flex: 1 0 auto; }
   .login-panel, .admin-panel { border-radius: 18px; }

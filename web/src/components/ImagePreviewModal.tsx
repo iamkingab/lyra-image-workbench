@@ -4,6 +4,7 @@ import { formatBytes } from '../lib/format'
 
 type ImageDimensions = { width: number; height: number }
 type PreviewAction = () => void | string | Promise<void | string>
+type ViewportSize = { width: number; height: number }
 
 type Props = {
   src: string
@@ -22,6 +23,7 @@ export function ImagePreviewModal({ src, title, bytes, onCopyImage, onCopyUrl, o
   const [dimensions, setDimensions] = useState<ImageDimensions>()
   const [byteSize, setByteSize] = useState(bytes || 0)
   const [notice, setNotice] = useState('')
+  const [viewport, setViewport] = useState<ViewportSize>(() => readViewport())
 
   useEffect(() => {
     setDimensions(undefined)
@@ -53,14 +55,20 @@ export function ImagePreviewModal({ src, title, bytes, onCopyImage, onCopyUrl, o
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose()
     }
+    const onResize = () => setViewport(readViewport())
     window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('resize', onResize)
+    window.visualViewport?.addEventListener('resize', onResize)
     return () => {
       document.body.style.overflow = previousOverflow
       window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('resize', onResize)
+      window.visualViewport?.removeEventListener('resize', onResize)
     }
   }, [onClose])
 
   const actualRatio = useMemo(() => formatActualRatio(dimensions), [dimensions])
+  const previewImageStyle = useMemo(() => getPreviewImageStyle(dimensions, viewport), [dimensions, viewport])
 
   async function runAction(action: PreviewAction | undefined, fallback: string) {
     if (!action) return
@@ -86,6 +94,7 @@ export function ImagePreviewModal({ src, title, bytes, onCopyImage, onCopyUrl, o
           <img
             src={src}
             alt={title}
+            style={previewImageStyle}
             onLoad={(event) => setDimensions({
               width: event.currentTarget.naturalWidth,
               height: event.currentTarget.naturalHeight,
@@ -103,6 +112,26 @@ export function ImagePreviewModal({ src, title, bytes, onCopyImage, onCopyUrl, o
     </div>,
     document.body,
   )
+}
+
+function readViewport(): ViewportSize {
+  return {
+    width: Math.round(window.visualViewport?.width || window.innerWidth || 1024),
+    height: Math.round(window.visualViewport?.height || window.innerHeight || 768),
+  }
+}
+
+function getPreviewImageStyle(dimensions: ImageDimensions | undefined, viewport: ViewportSize) {
+  if (!dimensions?.width || !dimensions.height) return undefined
+  const horizontalPadding = viewport.width <= 620 ? 24 : 56
+  const reservedHeight = viewport.width <= 620 ? 142 : 132
+  const maxWidth = Math.max(220, viewport.width - horizontalPadding)
+  const maxHeight = Math.max(220, viewport.height - reservedHeight)
+  const scale = Math.min(maxWidth / dimensions.width, maxHeight / dimensions.height)
+  return {
+    width: `${Math.max(1, Math.floor(dimensions.width * scale))}px`,
+    height: `${Math.max(1, Math.floor(dimensions.height * scale))}px`,
+  }
 }
 
 function formatDimensions(dimensions?: ImageDimensions) {
