@@ -1,4 +1,4 @@
-import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
+﻿import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import { cancelTask, createTask, deleteTask, listTasks, retryTask, setTaskFavorite, uploadTaskImageToPixhost } from '../api/tasks'
 import { clearSpaceToken, getSpaceToken } from '../api/client'
 import { getCurrentSpace, leaveSpace } from '../api/spaces'
@@ -7,7 +7,7 @@ import { getUserConfig } from '../api/config'
 import type { CreateTaskRequest, Mode, ModelProvider, ReferenceUpload, SpaceSession, Task, TaskEvent, UserConfig } from '../types'
 import { SpaceLogin } from './SpaceLogin'
 import { GenerationPanel } from './GenerationPanel'
-import { SettingsWindow } from './SettingsWindow'
+import { SettingsPanel } from './SettingsPanel'
 import { TaskDetailModal } from './TaskDetailModal'
 import { TaskSidebar } from './TaskSidebar'
 import { PromptAssistantModal } from './PromptAssistantModal'
@@ -16,16 +16,24 @@ import { useTaskEvents } from '../hooks/useTaskEvents'
 import { BANANA_PROVIDER, DEFAULT_BANANA_MODEL, DEFAULT_IMAGE2_MODEL, getBananaModelOption } from '../lib/models'
 
 type NumericInputValue = number | ''
+type WorkbenchTab = 'generate' | 'result' | 'queue' | 'assistant' | 'settings'
+
+const workflowTabs: Array<{ id: WorkbenchTab; label: string; hint: string }> = [
+  { id: 'generate', label: '生成', hint: '请求' },
+  { id: 'result', label: '结果', hint: '图片' },
+  { id: 'queue', label: '队列', hint: '历史' },
+  { id: 'assistant', label: '助手', hint: '提示词' },
+  { id: 'settings', label: '设置', hint: 'Key' },
+]
 
 export function WorkbenchPage() {
   const [session, setSession] = useState<SpaceSession | null>(null)
   const [spaceReady, setSpaceReady] = useState(false)
+  const [activeTab, setActiveTab] = useState<WorkbenchTab>('generate')
   const [keyReady, setKeyReady] = useState(false)
   const [keyPreview, setKeyPreview] = useState('')
   const [bananaKeyReady, setBananaKeyReady] = useState(false)
   const [bananaKeyPreview, setBananaKeyPreview] = useState('')
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const [promptAssistantOpen, setPromptAssistantOpen] = useState(false)
   const [tasks, setTasks] = useState<Task[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [detailId, setDetailId] = useState<string | null>(null)
@@ -49,6 +57,9 @@ export function WorkbenchPage() {
   const detailTask = useMemo(() => tasks.find((task) => task.id === detailId), [tasks, detailId])
   const activeTask = useMemo(() => tasks.find((task) => task.id === activeId), [tasks, activeId])
   const favoriteIds = useMemo(() => new Set(tasks.filter((task) => task.favorite).map((task) => task.id)), [tasks])
+  const currentKeyReady = provider === BANANA_PROVIDER ? bananaKeyReady : keyReady
+  const currentKeyPreview = provider === BANANA_PROVIDER ? bananaKeyPreview : keyPreview
+
   const upsertTask = useCallback((task: Task) => {
     setTasks((prev) => {
       const index = prev.findIndex((item) => item.id === task.id)
@@ -130,8 +141,8 @@ export function WorkbenchPage() {
   async function submit(event: FormEvent) {
     event.preventDefault()
     setError('')
-    const currentKeyReady = provider === BANANA_PROVIDER ? bananaKeyReady : keyReady
-    if (!currentKeyReady) {
+    const ready = provider === BANANA_PROVIDER ? bananaKeyReady : keyReady
+    if (!ready) {
       setError(provider === BANANA_PROVIDER ? '请先在设置里保存 banana 分组的 API Key' : '请先保存当前空间的 codex-key')
       return
     }
@@ -156,6 +167,7 @@ export function WorkbenchPage() {
       upsertTask(job)
       setActiveId(job.id)
       setPrompt('')
+      setActiveTab('result')
       setMessage('任务已提交，后端会继续执行，前端可刷新或断开')
     } catch (err) {
       setError(err instanceof Error ? err.message : '提交失败')
@@ -183,6 +195,7 @@ export function WorkbenchPage() {
     await refreshUploads()
     if (!primaryUploadId && created[0]) setPrimaryUploadId(created[0].id)
     setMode('image-to-image')
+    setActiveTab('generate')
     setMessage('已作为图生图参考图')
   }
 
@@ -200,7 +213,7 @@ export function WorkbenchPage() {
         setBananaModel(getBananaModelOption(options.model).id)
       }
     }
-    setPromptAssistantOpen(false)
+    setActiveTab('generate')
     setMessage(options ? '提示词助手已填入主输入框，并同步模型选择' : '提示词助手已填入主输入框')
     window.setTimeout(() => {
       document.querySelector('[data-generation-composer] textarea')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -209,6 +222,7 @@ export function WorkbenchPage() {
 
   function handleSelectTask(task: Task) {
     setActiveId(task.id)
+    setActiveTab('result')
   }
 
   function handleOpenTaskDetail(task: Task) {
@@ -228,6 +242,7 @@ export function WorkbenchPage() {
     setOutputFormat(task.outputFormat || 'png')
     setCount(task.count || 1)
     setConcurrency(task.concurrency || 1)
+    setActiveTab('generate')
     setMessage('已复用该任务的提示词和参数')
     window.setTimeout(() => {
       document.querySelector('[data-generation-composer] textarea')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -245,6 +260,7 @@ export function WorkbenchPage() {
     const job = await retryTask(id)
     upsertTask(job)
     setActiveId(job.id)
+    setActiveTab('result')
     setDetailId(job.id)
     setMessage('已重新提交任务')
   }
@@ -356,8 +372,8 @@ export function WorkbenchPage() {
   if (!session) return <SpaceLogin onSession={(next) => { setSession(next); setSpaceReady(true) }} />
 
   return (
-    <div className="app-shell gallery-shell">
-      <header className="topbar">
+    <div className="app-shell gallery-shell tabbed-workbench">
+      <header className="topbar workbench-topbar">
         <div className="brand">
           <div className="brand-mark">AI</div>
           <div>
@@ -370,72 +386,123 @@ export function WorkbenchPage() {
           <span className={bananaKeyReady ? 'ready' : 'missing'}>Banana {bananaKeyReady ? '已设置' : '未设置'}</span>
           <span className="ready">后端在线</span>
         </div>
-        <nav className="top-actions"><button type="button" onClick={() => setPromptAssistantOpen(true)}>提示词助手</button><button type="button" onClick={() => setSettingsOpen(true)}>设置</button><a className="ghost-link" href="/admin">Admin</a><button onClick={logout}>退出空间</button></nav>
+        <nav className="top-actions"><a className="ghost-link" href="/admin">Admin</a><button onClick={logout}>退出空间</button></nav>
       </header>
-      <main className="workbench-main">
-        <aside className="task-sidebar" aria-label="任务队列和历史">
-          <TaskSidebar
-            tasks={tasks}
-            activeId={activeId || undefined}
-            query={searchQuery}
-            favoriteIds={favoriteIds}
-            selectedIds={selectedIds}
-            onQueryChange={setSearchQuery}
-            onToggleSelect={toggleSelectTask}
-            onSelectVisible={selectVisibleTasks}
-            onClearSelection={() => setSelectedIds(new Set())}
-            onBatchFavorite={(favorite) => void handleBatchFavorite(favorite)}
-            onBatchDelete={() => void handleBatchDelete()}
-            onBatchDownload={handleBatchDownload}
-            onSelect={handleSelectTask}
-            onOpenDetail={handleOpenTaskDetail}
-            onRetry={(id) => void handleRetry(id)}
-            onCancel={(id) => void handleCancel(id)}
-            onDelete={(id) => void handleDelete(id)}
-            onReuse={handleReuseTask}
-            onToggleFavorite={(id) => void toggleFavorite(id)}
-          />
-        </aside>
-        <section className="result-workspace" aria-label="生成结果">
-          <ResultCanvas task={activeTask} onUseAsReference={handleUseResultAsReference} onUploadPixhost={handleUploadPixhost} />
-        </section>
+
+      <WorkbenchTabs activeTab={activeTab} onChange={setActiveTab} className="workflow-tabs desktop-tabs" />
+
+      <main className={`workflow-content workflow-${activeTab}`}>
+        {activeTab === 'generate' ? (
+          <section className="workflow-page generate-page" data-generation-composer>
+            <PageHeader eyebrow="Generate" title="生成请求" description="按顺序设置模型、提示词、参考图和规格。提交后自动进入结果页，后端继续执行。" />
+            {!currentKeyReady ? (
+              <div className="key-warning">
+                <strong>{provider === BANANA_PROVIDER ? 'Banana Key 未设置' : 'codex-key 未设置'}</strong>
+                <span>当前模型分组还没有可用 Key，先到设置页保存后再提交。</span>
+                <button type="button" onClick={() => setActiveTab('settings')}>去设置</button>
+              </div>
+            ) : null}
+            <GenerationPanel
+              mode={mode}
+              provider={provider}
+              prompt={prompt}
+              ratio={ratio}
+              resolution={resolution}
+              quality={quality}
+              outputFormat={outputFormat}
+              bananaModel={bananaModel}
+              count={count}
+              concurrency={concurrency}
+              uploads={uploads}
+              primaryUploadId={primaryUploadId}
+              keyReady={currentKeyReady}
+              keyPreview={currentKeyPreview}
+              message={message}
+              error={error}
+              onModeChange={setMode}
+              onProviderChange={setProvider}
+              onPromptChange={setPrompt}
+              onRatioChange={setRatio}
+              onResolutionChange={setResolution}
+              onQualityChange={setQuality}
+              onOutputFormatChange={setOutputFormat}
+              onBananaModelChange={setBananaModel}
+              onCountChange={setCount}
+              onConcurrencyChange={setConcurrency}
+              onPrimaryUploadChange={setPrimaryUploadId}
+              onOpenSettings={() => setActiveTab('settings')}
+              onOpenPromptAssistant={() => setActiveTab('assistant')}
+              onUpload={handleUpload}
+              onDeleteUpload={handleDeleteUpload}
+              onSubmit={submit}
+            />
+          </section>
+        ) : null}
+
+        {activeTab === 'result' ? (
+          <section className="workflow-page result-page">
+            <ResultCanvas task={activeTask} onUseAsReference={handleUseResultAsReference} onUploadPixhost={handleUploadPixhost} />
+          </section>
+        ) : null}
+
+        {activeTab === 'queue' ? (
+          <section className="workflow-page queue-page">
+            <TaskSidebar
+              tasks={tasks}
+              activeId={activeId || undefined}
+              query={searchQuery}
+              favoriteIds={favoriteIds}
+              selectedIds={selectedIds}
+              onQueryChange={setSearchQuery}
+              onToggleSelect={toggleSelectTask}
+              onSelectVisible={selectVisibleTasks}
+              onClearSelection={() => setSelectedIds(new Set())}
+              onBatchFavorite={(favorite) => void handleBatchFavorite(favorite)}
+              onBatchDelete={() => void handleBatchDelete()}
+              onBatchDownload={handleBatchDownload}
+              onSelect={handleSelectTask}
+              onOpenDetail={handleOpenTaskDetail}
+              onRetry={(id) => void handleRetry(id)}
+              onCancel={(id) => void handleCancel(id)}
+              onDelete={(id) => void handleDelete(id)}
+              onReuse={handleReuseTask}
+              onToggleFavorite={(id) => void toggleFavorite(id)}
+            />
+          </section>
+        ) : null}
+
+        {activeTab === 'assistant' ? (
+          <section className="workflow-page assistant-page">
+            <PromptAssistantModal
+              embedded
+              tasks={tasks}
+              uploads={uploads}
+              provider={provider}
+              bananaModel={bananaModel}
+              onClose={() => setActiveTab('generate')}
+              onUsePrompt={handleUseAssistantPrompt}
+              onRefreshUploads={refreshUploads}
+            />
+          </section>
+        ) : null}
+
+        {activeTab === 'settings' ? (
+          <section className="workflow-page settings-page-inline">
+            <PageHeader eyebrow="Settings" title="设置" description="当前空间的 codex-key、Banana 分组 API Key、默认并发和图床设置。Admin 仍在独立页面。" />
+            <div className="settings-inline-grid">
+              <SettingsPanel onConfig={applyUserConfig} />
+              <aside className="admin-entry-panel">
+                <strong>Admin 管理</strong>
+                <span>上游 URL、超时时间和管理密码仍放在独立 Admin 页面，避免普通生成流程误改。</span>
+                <a className="ghost-link" href="/admin">打开 Admin</a>
+              </aside>
+            </div>
+          </section>
+        ) : null}
       </main>
-      <div className="composer-dock" data-generation-composer>
-        <GenerationPanel
-            mode={mode}
-            provider={provider}
-            prompt={prompt}
-            ratio={ratio}
-            resolution={resolution}
-            quality={quality}
-            outputFormat={outputFormat}
-            bananaModel={bananaModel}
-            count={count}
-            concurrency={concurrency}
-            uploads={uploads}
-            primaryUploadId={primaryUploadId}
-            keyReady={provider === BANANA_PROVIDER ? bananaKeyReady : keyReady}
-            keyPreview={provider === BANANA_PROVIDER ? bananaKeyPreview : keyPreview}
-            message={message}
-            error={error}
-            onModeChange={setMode}
-            onProviderChange={setProvider}
-            onPromptChange={setPrompt}
-            onRatioChange={setRatio}
-            onResolutionChange={setResolution}
-            onQualityChange={setQuality}
-            onOutputFormatChange={setOutputFormat}
-            onBananaModelChange={setBananaModel}
-            onCountChange={setCount}
-            onConcurrencyChange={setConcurrency}
-            onPrimaryUploadChange={setPrimaryUploadId}
-            onOpenSettings={() => setSettingsOpen(true)}
-            onOpenPromptAssistant={() => setPromptAssistantOpen(true)}
-            onUpload={handleUpload}
-            onDeleteUpload={handleDeleteUpload}
-            onSubmit={submit}
-          />
-      </div>
+
+      <WorkbenchTabs activeTab={activeTab} onChange={setActiveTab} className="workflow-tabs mobile-tabs" />
+
       {detailTask ? (
         <TaskDetailModal
           task={detailTask}
@@ -450,19 +517,30 @@ export function WorkbenchPage() {
           onUploadPixhost={handleUploadPixhost}
         />
       ) : null}
-      {settingsOpen ? <SettingsWindow onClose={() => setSettingsOpen(false)} onConfig={applyUserConfig} /> : null}
-      {promptAssistantOpen ? (
-        <PromptAssistantModal
-          tasks={tasks}
-          uploads={uploads}
-          provider={provider}
-          bananaModel={bananaModel}
-          onClose={() => setPromptAssistantOpen(false)}
-          onUsePrompt={handleUseAssistantPrompt}
-          onRefreshUploads={refreshUploads}
-        />
-      ) : null}
     </div>
+  )
+}
+
+function PageHeader({ eyebrow, title, description }: { eyebrow: string; title: string; description: string }) {
+  return (
+    <header className="workflow-page-header">
+      <p className="eyebrow">{eyebrow}</p>
+      <h2>{title}</h2>
+      <p>{description}</p>
+    </header>
+  )
+}
+
+function WorkbenchTabs({ activeTab, onChange, className }: { activeTab: WorkbenchTab; onChange: (tab: WorkbenchTab) => void; className: string }) {
+  return (
+    <nav className={className} aria-label="工作流标签页">
+      {workflowTabs.map((tab) => (
+        <button key={tab.id} type="button" className={activeTab === tab.id ? 'active' : ''} onClick={() => onChange(tab.id)}>
+          <strong>{tab.label}</strong>
+          <span>{tab.hint}</span>
+        </button>
+      ))}
+    </nav>
   )
 }
 
