@@ -73,7 +73,13 @@ func (s *Store) Get(spaceToken string) (Config, error) {
 	if err := json.Unmarshal(data, &cfg); err != nil {
 		return Config{}, fmt.Errorf("读取个人空间配置失败：%w", err)
 	}
-	return normalize(cfg), nil
+	normalized := normalize(cfg)
+	if hasSensitiveKeys(cfg) {
+		if err := s.save(spaceToken, normalized); err != nil {
+			return Config{}, fmt.Errorf("清理历史 API Key 失败: %w", err)
+		}
+	}
+	return normalized, nil
 }
 
 func (s *Store) Update(spaceToken string, update Update) (PublicConfig, error) {
@@ -141,6 +147,10 @@ func normalize(cfg Config) Config {
 	cfg.DefaultConcurrency = clamp(cfg.DefaultConcurrency, 1, 0, 1)
 	cfg.UpdatedAt = strings.TrimSpace(cfg.UpdatedAt)
 	return cfg
+}
+
+func hasSensitiveKeys(cfg Config) bool {
+	return strings.TrimSpace(cfg.APIKey) != "" || strings.TrimSpace(cfg.BananaAPIKey) != ""
 }
 
 func toPublic(cfg Config) PublicConfig {

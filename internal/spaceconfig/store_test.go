@@ -2,6 +2,8 @@ package spaceconfig
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -75,6 +77,59 @@ func TestStoreDoesNotPersistBananaAPIKey(t *testing.T) {
 	}
 	if private.BananaAPIKey != "" {
 		t.Fatalf("banana API key should not be persisted: %q", private.BananaAPIKey)
+	}
+}
+
+func TestStoreScrubsLegacyPersistedAPIKeysOnRead(t *testing.T) {
+	spaceStore, err := spaces.NewFileStore(t.TempDir())
+	if err != nil {
+		t.Fatalf("NewFileStore() error = %v", err)
+	}
+	session, err := spaceStore.CreateOrOpenByPassword("R7!Legacy#Vault$2026")
+	if err != nil {
+		t.Fatalf("CreateOrOpenByPassword() error = %v", err)
+	}
+	dir, err := spaceStore.SpaceDir(session.Token)
+	if err != nil {
+		t.Fatalf("SpaceDir() error = %v", err)
+	}
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		t.Fatalf("MkdirAll(space dir) error = %v", err)
+	}
+	legacy := Config{
+		APIKey:             "sk-legacy-secret-1234567890",
+		BananaAPIKey:       "sk-legacy-banana-secret-1234567890",
+		DefaultCount:       2,
+		DefaultConcurrency: 3,
+		AutoUploadPixhost:  true,
+		UpdatedAt:          "2026-05-17T00:00:00Z",
+	}
+	payload, err := json.MarshalIndent(legacy, "", "  ")
+	if err != nil {
+		t.Fatalf("MarshalIndent(legacy) error = %v", err)
+	}
+	configFile := filepath.Join(dir, "config.json")
+	if err := os.WriteFile(configFile, append(payload, '\n'), 0o600); err != nil {
+		t.Fatalf("WriteFile(legacy config) error = %v", err)
+	}
+	store := NewStore(spaceStore)
+
+	public, err := store.Public(session.Token)
+	if err != nil {
+		t.Fatalf("Public() error = %v", err)
+	}
+	if public.APIKeySet || public.BananaAPIKeySet || public.APIKeyPreview != "" || public.BananaAPIKeyPreview != "" {
+		t.Fatalf("legacy keys should be hidden from public config: %+v", public)
+	}
+	if public.DefaultCount != 2 || public.DefaultConcurrency != 3 || !public.AutoUploadPixhost {
+		t.Fatalf("non-secret settings should survive scrub: %+v", public)
+	}
+	scrubbed, err := os.ReadFile(configFile)
+	if err != nil {
+		t.Fatalf("ReadFile(scrubbed config) error = %v", err)
+	}
+	if strings.Contains(string(scrubbed), "sk-legacy-secret") || strings.Contains(string(scrubbed), "sk-legacy-banana") {
+		t.Fatalf("legacy API keys were not removed from disk: %s", scrubbed)
 	}
 }
 
