@@ -80,6 +80,48 @@ func TestStoreDoesNotPersistBananaAPIKey(t *testing.T) {
 	}
 }
 
+func TestStorePersistsCloudAPIKeysOnlyWhenExplicitlyEnabled(t *testing.T) {
+	spaceStore, err := spaces.NewFileStore(t.TempDir())
+	if err != nil {
+		t.Fatalf("NewFileStore() error = %v", err)
+	}
+	session, err := spaceStore.CreateOrOpenByPassword("R7!Cloud#Vault$2026")
+	if err != nil {
+		t.Fatalf("CreateOrOpenByPassword() error = %v", err)
+	}
+	store := NewStore(spaceStore)
+
+	rawKey := "  sk-cloud-secret-1234567890  "
+	enabled := true
+	public, err := store.Update(session.Token, Update{APIKey: &rawKey, SaveAPIKeyToCloud: &enabled})
+	if err != nil {
+		t.Fatalf("Update(cloud key) error = %v", err)
+	}
+	if !public.APIKeySet || !public.CloudAPIKeySet || public.APIKeyPreview == "" || public.CloudAPIKeyPreview == "" {
+		t.Fatalf("cloud API key should be reported as set: %+v", public)
+	}
+	encoded, _ := json.Marshal(public)
+	if strings.Contains(string(encoded), "sk-cloud-secret-1234567890") {
+		t.Fatalf("public config leaked raw cloud API key: %s", encoded)
+	}
+	private, err := store.Get(session.Token)
+	if err != nil {
+		t.Fatalf("Get() error = %v", err)
+	}
+	if private.APIKey != "sk-cloud-secret-1234567890" || !private.CloudAPIKeyEnabled {
+		t.Fatalf("cloud API key was not persisted with explicit consent: %+v", private)
+	}
+
+	clear := true
+	public, err = store.Update(session.Token, Update{ClearCloudAPIKey: &clear})
+	if err != nil {
+		t.Fatalf("Update(clear cloud key) error = %v", err)
+	}
+	if public.APIKeySet || public.CloudAPIKeySet {
+		t.Fatalf("cloud API key should be cleared: %+v", public)
+	}
+}
+
 func TestStoreScrubsLegacyPersistedAPIKeysOnRead(t *testing.T) {
 	spaceStore, err := spaces.NewFileStore(t.TempDir())
 	if err != nil {

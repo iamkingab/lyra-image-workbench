@@ -24,8 +24,13 @@ type userRegisterRequest struct {
 }
 
 type userLoginRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username      string `json:"username"`
+	Password      string `json:"password"`
+	TwoFactorCode string `json:"twoFactorCode"`
+}
+
+type twoFactorCodeRequest struct {
+	Code string `json:"code"`
 }
 
 func NewUserHandler(store *users.Store, spaceStore *spaces.FileStore) UserHandler {
@@ -68,7 +73,7 @@ func (h UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "BAD_JSON", "请求体不是有效 JSON")
 		return
 	}
-	session, err := h.store.Login(payload.Username, payload.Password)
+	session, err := h.store.Login(payload.Username, payload.Password, payload.TwoFactorCode)
 	if err != nil {
 		writeUserError(w, err)
 		return
@@ -92,6 +97,60 @@ func (h UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 	clearUserSessionCookie(w, r)
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+func (h UserHandler) SetupTwoFactor(w http.ResponseWriter, r *http.Request) {
+	session, ok := currentUserSession(h.store, r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "USER_AUTH_REQUIRED", "请先登录")
+		return
+	}
+	setup, err := h.store.BeginTOTPSetup(session.User.Username)
+	if err != nil {
+		writeUserError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "setup": setup})
+}
+
+func (h UserHandler) EnableTwoFactor(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+	session, ok := currentUserSession(h.store, r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "USER_AUTH_REQUIRED", "请先登录")
+		return
+	}
+	var payload twoFactorCodeRequest
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		writeError(w, http.StatusBadRequest, "BAD_JSON", "请求体不是有效 JSON")
+		return
+	}
+	if err := h.store.EnableTOTP(session.User.Username, payload.Code); err != nil {
+		writeUserError(w, err)
+		return
+	}
+	current, _ := currentUserSession(h.store, r)
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "session": current})
+}
+
+func (h UserHandler) DisableTwoFactor(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+	session, ok := currentUserSession(h.store, r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "USER_AUTH_REQUIRED", "请先登录")
+		return
+	}
+	var payload twoFactorCodeRequest
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		writeError(w, http.StatusBadRequest, "BAD_JSON", "请求体不是有效 JSON")
+		return
+	}
+	if err := h.store.DisableTOTP(session.User.Username, payload.Code); err != nil {
+		writeUserError(w, err)
+		return
+	}
+	current, _ := currentUserSession(h.store, r)
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "session": current})
 }
 
 func currentUserSession(store *users.Store, r *http.Request) (users.Session, bool) {
@@ -143,7 +202,7 @@ func writeUserError(w http.ResponseWriter, err error) {
 	if users.AsError(err, &userErr) {
 		code = userErr.Code
 		message = userErr.Chinese
-		if code == "USER_LOGIN_INVALID" || code == "USER_AUTH_REQUIRED" {
+		if code == "USER_LOGIN_INVALID" || code == "USER_AUTH_REQUIRED" || code == "USER_TOTP_REQUIRED" || code == "USER_TOTP_INVALID" {
 			status = http.StatusUnauthorized
 		}
 		if code == "USER_ALREADY_EXISTS" {

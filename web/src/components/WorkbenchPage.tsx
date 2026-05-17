@@ -228,7 +228,7 @@ export function WorkbenchPage({ theme, onToggleTheme }: { theme: ThemeMode; onTo
     setError('')
     const ready = provider === BANANA_PROVIDER ? bananaKeyReady : keyReady
     if (!ready) {
-      setError(provider === BANANA_PROVIDER ? '请先在当前浏览器保存 banana 分组的 API Key' : '请先在当前浏览器保存 codex-key')
+      setError(provider === BANANA_PROVIDER ? '请先保存 banana 分组 API Key，或确认已上传到云端' : '请先保存 codex-key，或确认已上传到云端')
       return
     }
     if (!prompt.trim()) { setError('请先输入提示词'); return }
@@ -356,7 +356,7 @@ export function WorkbenchPage({ theme, onToggleTheme }: { theme: ThemeMode; onTo
     const nextProvider = task?.provider || 'image-2'
     const ready = nextProvider === BANANA_PROVIDER ? bananaKeyReady : keyReady
     if (!ready) {
-      setToast(nextProvider === BANANA_PROVIDER ? '请先在当前浏览器保存 Banana API Key' : '请先在当前浏览器保存 codex-key')
+      setToast(nextProvider === BANANA_PROVIDER ? '请先保存 Banana API Key，或确认已上传到云端' : '请先保存 codex-key，或确认已上传到云端')
       goToTab('settings')
       return
     }
@@ -528,7 +528,7 @@ export function WorkbenchPage({ theme, onToggleTheme }: { theme: ThemeMode; onTo
                 {!currentKeyReady ? (
                   <div className="key-warning">
                     <strong>{provider === BANANA_PROVIDER ? 'Banana Key 未设置' : 'codex-key 未设置'}</strong>
-                    <span>当前模型还没有可用 Key，先去设置保存后再生成。</span>
+                    <span>当前模型还没有可用 Key，先去设置保存，或主动上传到云端后再生成。</span>
                     <button type="button" onClick={() => goToTab('settings')}>去设置</button>
                   </div>
                 ) : null}

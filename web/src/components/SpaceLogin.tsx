@@ -1,4 +1,5 @@
 import { type FormEvent, useState } from 'react'
+import { ApiError } from '../api/client'
 import { loginUser, registerUser } from '../api/users'
 import type { UserSession } from '../types'
 import { ThemeToggle, type ThemeMode } from './ThemeToggle'
@@ -10,6 +11,8 @@ export function SpaceLogin({ onSession, theme, onToggleTheme }: { onSession: (se
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [twoFactorCode, setTwoFactorCode] = useState('')
+  const [twoFactorRequired, setTwoFactorRequired] = useState(false)
   const [passwordVisible, setPasswordVisible] = useState(false)
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false)
   const [legacySpacePassword, setLegacySpacePassword] = useState('')
@@ -27,9 +30,14 @@ export function SpaceLogin({ onSession, theme, onToggleTheme }: { onSession: (se
     try {
       const session = isRegister
         ? await registerUser(username, password, importLegacy ? legacySpacePassword : '')
-        : await loginUser(username, password)
+        : await loginUser(username, password, twoFactorCode)
       onSession(session)
     } catch (err) {
+      if (err instanceof ApiError && (err.code === 'USER_TOTP_REQUIRED' || err.code === 'USER_TOTP_INVALID')) {
+        setTwoFactorRequired(true)
+        setError(err.code === 'USER_TOTP_INVALID' ? '2FA 验证码无效或已过期' : '请输入 2FA 验证码')
+        return
+      }
       setError(err instanceof Error ? err.message : (isRegister ? '注册失败' : '登录失败'))
     }
   }
@@ -54,8 +62,8 @@ export function SpaceLogin({ onSession, theme, onToggleTheme }: { onSession: (se
           <ul>
             <li>用户名和密码用于进入同一个服务器账号空间。</li>
             <li>历史记录保存在服务器账号空间中，多设备登录可同步查看。</li>
-            <li>API Key 只保存在当前浏览器本地，不会随账号同步。</li>
-            <li>新设备登录后需要在设置页重新填写 Key 才能生成或重试任务。</li>
+            <li>API Key 默认只保存在当前浏览器本地，也可以在设置页确认风险后上传到云端。</li>
+            <li>新设备登录后可重新填写本地 Key，或使用已授权保存的云端 Key。</li>
           </ul>
         </div>
         <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="用户名，小写字母/数字/._-" autoFocus />
@@ -75,6 +83,14 @@ export function SpaceLogin({ onSession, theme, onToggleTheme }: { onSession: (se
             placeholder="再次输入密码"
           />
         ) : null}
+        {!isRegister && twoFactorRequired ? (
+          <input
+            inputMode="numeric"
+            value={twoFactorCode}
+            onChange={(e) => setTwoFactorCode(e.target.value)}
+            placeholder="2FA 验证码"
+          />
+        ) : null}
         {isRegister ? (
           <label className="check-row">
             <input type="checkbox" checked={importLegacy} onChange={(e) => setImportLegacy(e.target.checked)} />
@@ -85,7 +101,7 @@ export function SpaceLogin({ onSession, theme, onToggleTheme }: { onSession: (se
           <input type="password" value={legacySpacePassword} onChange={(e) => setLegacySpacePassword(e.target.value)} placeholder="旧空间密码" />
         ) : null}
         <button className="primary" type="submit">{isRegister ? '注册并进入' : '登录'}</button>
-        <button type="button" onClick={() => { setMode(isRegister ? 'login' : 'register'); setError(''); setConfirmPassword('') }}>
+        <button type="button" onClick={() => { setMode(isRegister ? 'login' : 'register'); setError(''); setConfirmPassword(''); setTwoFactorCode(''); setTwoFactorRequired(false) }}>
           {isRegister ? '已有账号，去登录' : '没有账号，去注册'}
         </button>
         {error ? <div className="error">{error}</div> : null}

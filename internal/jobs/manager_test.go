@@ -84,6 +84,40 @@ func TestManagerCreateReturnsQueuedAndCompletesInBackground(t *testing.T) {
 	}
 }
 
+func TestManagerUsesCloudKeyWhenRuntimeKeyMissing(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.Header.Get("Authorization"); got != "Bearer sk-cloud" {
+			t.Fatalf("Authorization = %q", got)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]string{{
+			"b64_json": base64.StdEncoding.EncodeToString([]byte("cloud-image")),
+		}}})
+	}))
+	defer server.Close()
+	env := newManagerTestEnv(t, server.URL+"/v1")
+	enabled := true
+	cloudKey := "sk-cloud"
+	if _, err := env.spaceConfig.Update(env.token, spaceconfig.Update{APIKey: &cloudKey, SaveAPIKeyToCloud: &enabled}); err != nil {
+		t.Fatalf("spaceConfig.Update(cloud key) error = %v", err)
+	}
+
+	created, err := env.manager.Create(env.token, CreateRequest{
+		Mode:        ModeTextToImage,
+		Prompt:      "cloud cat",
+		Ratio:       "1:1",
+		Resolution:  "standard",
+		Count:       1,
+		Concurrency: 1,
+	})
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+	final := waitForJobStatus(t, env.store, env.token, created.ID, StatusSucceeded, 3*time.Second)
+	if len(final.Results) != 1 || !final.Results[0].OK {
+		t.Fatalf("unexpected final cloud-key result: %+v", final.Results)
+	}
+}
+
 func TestManagerRecordsDebugLogsWhenEnabled(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]string{{
@@ -218,7 +252,7 @@ func TestManagerRequiresBananaKeyForBananaProvider(t *testing.T) {
 		Prompt:   "banana",
 		Count:    1,
 	})
-	if err == nil || !strings.Contains(err.Error(), "browser") {
+	if err == nil || !strings.Contains(err.Error(), "configured") {
 		t.Fatalf("expected banana key error, got %v", err)
 	}
 }

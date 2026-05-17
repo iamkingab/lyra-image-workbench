@@ -6,6 +6,7 @@ export interface UserSession {
   user: {
     username: string
     displayName: string
+    twoFactorEnabled: boolean
     createdAt: string
     lastLoginAt?: string
   }
@@ -17,6 +18,16 @@ export interface UserConfig {
   apiKeyPreview: string
   bananaApiKeySet: boolean
   bananaApiKeyPreview: string
+  localApiKeySet?: boolean
+  localApiKeyPreview?: string
+  localBananaApiKeySet?: boolean
+  localBananaApiKeyPreview?: string
+  cloudApiKeySet?: boolean
+  cloudApiKeyPreview?: string
+  cloudBananaApiKeySet?: boolean
+  cloudBananaApiKeyPreview?: string
+  apiKeySource?: 'local' | 'cloud' | 'none'
+  bananaApiKeySource?: 'local' | 'cloud' | 'none'
   defaultCount: number
   defaultConcurrency: number
   autoUploadPixhost: boolean

@@ -420,12 +420,16 @@ func (s *Service) ExpandIdea(ctx context.Context, spaceToken string, req Inspira
 }
 
 func (s *Service) apiKey(spaceToken string, runtimeAPIKey string) (string, error) {
-	if _, err := s.spaceConfig.Get(spaceToken); err != nil {
+	cfg, err := s.spaceConfig.Get(spaceToken)
+	if err != nil {
 		return "", err
 	}
 	apiKey := strings.TrimSpace(runtimeAPIKey)
 	if apiKey == "" {
-		return "", errors.New("codex-key is saved only in the browser; save it locally and retry")
+		apiKey = strings.TrimSpace(cfg.APIKey)
+	}
+	if apiKey == "" {
+		return "", errors.New("codex-key is not configured; save it locally or upload it to cloud after enabling account protection")
 	}
 	return apiKey, nil
 }

@@ -71,8 +71,8 @@ func writePromptToolError(w http.ResponseWriter, mode string, err error) {
 func promptToolErrorMeta(mode string, err error) jobs.Meta {
 	raw := strings.TrimSpace(err.Error())
 	lower := strings.ToLower(raw)
-	if strings.Contains(lower, "codex-key is saved only in the browser") {
-		return jobs.Meta{Code: "P_CODEX_KEY_MISSING", English: "codex_key_missing", Chinese: "请先在当前浏览器保存 codex-key"}
+	if strings.Contains(lower, "codex-key is saved only in the browser") || strings.Contains(lower, "codex-key is not configured") {
+		return jobs.Meta{Code: "P_CODEX_KEY_MISSING", English: "codex_key_missing", Chinese: "请先在当前浏览器保存 codex-key，或确认已主动上传到云端"}
 	}
 	if strings.Contains(lower, "请先") && strings.Contains(lower, "key") {
 		return jobs.Meta{Code: "P_CODEX_KEY_MISSING", English: "codex_key_missing", Chinese: "请先填写 codex-key"}

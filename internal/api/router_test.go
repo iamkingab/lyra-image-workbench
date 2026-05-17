@@ -44,6 +44,29 @@ func TestConfigAPIDoesNotPersistAPIKeys(t *testing.T) {
 	}
 }
 
+func TestConfigAPIOptionallyPersistsCloudKeys(t *testing.T) {
+	router := newTestRouter(t)
+	token := createTestSession(t, router)
+	rawKey := "sk-cloud-secret-1234567890"
+
+	body := doJSON(t, router, http.MethodPost, "/api/config", token, map[string]any{"apiKey": rawKey, "saveApiKeyToCloud": true})
+	if strings.Contains(body, rawKey) {
+		t.Fatalf("POST /api/config leaked raw cloud key: %s", body)
+	}
+	if !strings.Contains(body, `"cloudApiKeySet":true`) || !strings.Contains(body, `"apiKeySet":true`) {
+		t.Fatalf("cloud key should be reported as set: %s", body)
+	}
+	body = doJSON(t, router, http.MethodGet, "/api/config", token, nil)
+	if strings.Contains(body, rawKey) || !strings.Contains(body, `"cloudApiKeySet":true`) {
+		t.Fatalf("GET /api/config cloud key status invalid: %s", body)
+	}
+
+	body = doJSON(t, router, http.MethodPost, "/api/config", token, map[string]any{"clearCloudApiKey": true})
+	if !strings.Contains(body, `"cloudApiKeySet":false`) || !strings.Contains(body, `"apiKeySet":false`) {
+		t.Fatalf("cloud key should be cleared: %s", body)
+	}
+}
+
 func TestUserConfigRequiresLogin(t *testing.T) {
 	router := newTestRouter(t)
 

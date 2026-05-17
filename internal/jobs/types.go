@@ -173,8 +173,8 @@ func ErrorMeta(raw string) Meta {
 	if raw == "" {
 		return Meta{}
 	}
-	if strings.Contains(lower, "saved only in the browser") || strings.Contains(lower, "runtime api key") {
-		return Meta{"E_LOCAL_KEY_MISSING", "local_api_key_missing", "请先在当前浏览器保存 API Key"}
+	if strings.Contains(lower, "saved only in the browser") || strings.Contains(lower, "runtime api key") || strings.Contains(lower, "api key is not configured") || strings.Contains(lower, "codex-key is not configured") {
+		return Meta{"E_LOCAL_KEY_MISSING", "api_key_missing", "请先在当前浏览器保存 API Key，或确认已主动上传到云端"}
 	}
 	if strings.Contains(lower, "unexpected eof") {
 		return Meta{"E_UPSTREAM_EOF", "upstream_response_truncated", "上游响应提前结束"}

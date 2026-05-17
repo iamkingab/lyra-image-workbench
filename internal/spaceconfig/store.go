@@ -13,31 +13,41 @@ import (
 )
 
 type Config struct {
-	APIKey             string `json:"apiKey,omitempty"`
-	BananaAPIKey       string `json:"bananaApiKey,omitempty"`
-	DefaultCount       int    `json:"defaultCount,omitempty"`
-	DefaultConcurrency int    `json:"defaultConcurrency,omitempty"`
-	AutoUploadPixhost  bool   `json:"autoUploadPixhost,omitempty"`
-	UpdatedAt          string `json:"updatedAt"`
+	APIKey                   string `json:"apiKey,omitempty"`
+	BananaAPIKey             string `json:"bananaApiKey,omitempty"`
+	CloudAPIKeyEnabled       bool   `json:"cloudApiKeyEnabled,omitempty"`
+	CloudBananaAPIKeyEnabled bool   `json:"cloudBananaApiKeyEnabled,omitempty"`
+	DefaultCount             int    `json:"defaultCount,omitempty"`
+	DefaultConcurrency       int    `json:"defaultConcurrency,omitempty"`
+	AutoUploadPixhost        bool   `json:"autoUploadPixhost,omitempty"`
+	UpdatedAt                string `json:"updatedAt"`
 }
 
 type PublicConfig struct {
-	APIKeySet           bool   `json:"apiKeySet"`
-	APIKeyPreview       string `json:"apiKeyPreview"`
-	BananaAPIKeySet     bool   `json:"bananaApiKeySet"`
-	BananaAPIKeyPreview string `json:"bananaApiKeyPreview"`
-	DefaultCount        int    `json:"defaultCount"`
-	DefaultConcurrency  int    `json:"defaultConcurrency"`
-	AutoUploadPixhost   bool   `json:"autoUploadPixhost"`
-	UpdatedAt           string `json:"updatedAt"`
+	APIKeySet                bool   `json:"apiKeySet"`
+	APIKeyPreview            string `json:"apiKeyPreview"`
+	BananaAPIKeySet          bool   `json:"bananaApiKeySet"`
+	BananaAPIKeyPreview      string `json:"bananaApiKeyPreview"`
+	CloudAPIKeySet           bool   `json:"cloudApiKeySet"`
+	CloudAPIKeyPreview       string `json:"cloudApiKeyPreview"`
+	CloudBananaAPIKeySet     bool   `json:"cloudBananaApiKeySet"`
+	CloudBananaAPIKeyPreview string `json:"cloudBananaApiKeyPreview"`
+	DefaultCount             int    `json:"defaultCount"`
+	DefaultConcurrency       int    `json:"defaultConcurrency"`
+	AutoUploadPixhost        bool   `json:"autoUploadPixhost"`
+	UpdatedAt                string `json:"updatedAt"`
 }
 
 type Update struct {
-	APIKey             *string `json:"apiKey"`
-	BananaAPIKey       *string `json:"bananaApiKey"`
-	DefaultCount       *int    `json:"defaultCount"`
-	DefaultConcurrency *int    `json:"defaultConcurrency"`
-	AutoUploadPixhost  *bool   `json:"autoUploadPixhost"`
+	APIKey                 *string `json:"apiKey"`
+	BananaAPIKey           *string `json:"bananaApiKey"`
+	SaveAPIKeyToCloud      *bool   `json:"saveApiKeyToCloud"`
+	SaveBananaKeyToCloud   *bool   `json:"saveBananaKeyToCloud"`
+	ClearCloudAPIKey       *bool   `json:"clearCloudApiKey"`
+	ClearCloudBananaAPIKey *bool   `json:"clearCloudBananaApiKey"`
+	DefaultCount           *int    `json:"defaultCount"`
+	DefaultConcurrency     *int    `json:"defaultConcurrency"`
+	AutoUploadPixhost      *bool   `json:"autoUploadPixhost"`
 }
 
 type Store struct {
@@ -74,9 +84,9 @@ func (s *Store) Get(spaceToken string) (Config, error) {
 		return Config{}, fmt.Errorf("读取个人空间配置失败：%w", err)
 	}
 	normalized := normalize(cfg)
-	if hasSensitiveKeys(cfg) {
+	if hasUnauthorizedSensitiveKeys(cfg) {
 		if err := s.save(spaceToken, normalized); err != nil {
-			return Config{}, fmt.Errorf("清理历史 API Key 失败: %w", err)
+			return Config{}, fmt.Errorf("清理未授权云端 API Key 失败: %w", err)
 		}
 	}
 	return normalized, nil
@@ -90,11 +100,21 @@ func (s *Store) Update(spaceToken string, update Update) (PublicConfig, error) {
 	if err != nil {
 		return PublicConfig{}, err
 	}
-	if update.APIKey != nil {
-		cfg.APIKey = strings.TrimSpace(*update.APIKey)
+	if update.ClearCloudAPIKey != nil && *update.ClearCloudAPIKey {
+		cfg.APIKey = ""
+		cfg.CloudAPIKeyEnabled = false
 	}
-	if update.BananaAPIKey != nil {
+	if update.ClearCloudBananaAPIKey != nil && *update.ClearCloudBananaAPIKey {
+		cfg.BananaAPIKey = ""
+		cfg.CloudBananaAPIKeyEnabled = false
+	}
+	if update.APIKey != nil && update.SaveAPIKeyToCloud != nil && *update.SaveAPIKeyToCloud {
+		cfg.APIKey = strings.TrimSpace(*update.APIKey)
+		cfg.CloudAPIKeyEnabled = cfg.APIKey != ""
+	}
+	if update.BananaAPIKey != nil && update.SaveBananaKeyToCloud != nil && *update.SaveBananaKeyToCloud {
 		cfg.BananaAPIKey = strings.TrimSpace(*update.BananaAPIKey)
+		cfg.CloudBananaAPIKeyEnabled = cfg.BananaAPIKey != ""
 	}
 	if update.DefaultCount != nil {
 		cfg.DefaultCount = clamp(*update.DefaultCount, 1, 12, 1)
@@ -141,28 +161,47 @@ func (s *Store) configPath(spaceToken string) (string, error) {
 }
 
 func normalize(cfg Config) Config {
-	cfg.APIKey = ""
-	cfg.BananaAPIKey = ""
+	cfg.APIKey = strings.TrimSpace(cfg.APIKey)
+	cfg.BananaAPIKey = strings.TrimSpace(cfg.BananaAPIKey)
+	if !cfg.CloudAPIKeyEnabled {
+		cfg.APIKey = ""
+	}
+	if cfg.APIKey == "" {
+		cfg.CloudAPIKeyEnabled = false
+	}
+	if !cfg.CloudBananaAPIKeyEnabled {
+		cfg.BananaAPIKey = ""
+	}
+	if cfg.BananaAPIKey == "" {
+		cfg.CloudBananaAPIKeyEnabled = false
+	}
 	cfg.DefaultCount = clamp(cfg.DefaultCount, 1, 12, 1)
 	cfg.DefaultConcurrency = clamp(cfg.DefaultConcurrency, 1, 0, 1)
 	cfg.UpdatedAt = strings.TrimSpace(cfg.UpdatedAt)
 	return cfg
 }
 
-func hasSensitiveKeys(cfg Config) bool {
-	return strings.TrimSpace(cfg.APIKey) != "" || strings.TrimSpace(cfg.BananaAPIKey) != ""
+func hasUnauthorizedSensitiveKeys(cfg Config) bool {
+	return (strings.TrimSpace(cfg.APIKey) != "" && !cfg.CloudAPIKeyEnabled) ||
+		(strings.TrimSpace(cfg.BananaAPIKey) != "" && !cfg.CloudBananaAPIKeyEnabled)
 }
 
 func toPublic(cfg Config) PublicConfig {
+	cloudAPIKeySet := cfg.CloudAPIKeyEnabled && cfg.APIKey != ""
+	cloudBananaKeySet := cfg.CloudBananaAPIKeyEnabled && cfg.BananaAPIKey != ""
 	return PublicConfig{
-		APIKeySet:           cfg.APIKey != "",
-		APIKeyPreview:       maskSecret(cfg.APIKey),
-		BananaAPIKeySet:     cfg.BananaAPIKey != "",
-		BananaAPIKeyPreview: maskSecret(cfg.BananaAPIKey),
-		DefaultCount:        cfg.DefaultCount,
-		DefaultConcurrency:  cfg.DefaultConcurrency,
-		AutoUploadPixhost:   cfg.AutoUploadPixhost,
-		UpdatedAt:           cfg.UpdatedAt,
+		APIKeySet:                cloudAPIKeySet,
+		APIKeyPreview:            maskSecret(cfg.APIKey),
+		BananaAPIKeySet:          cloudBananaKeySet,
+		BananaAPIKeyPreview:      maskSecret(cfg.BananaAPIKey),
+		CloudAPIKeySet:           cloudAPIKeySet,
+		CloudAPIKeyPreview:       maskSecret(cfg.APIKey),
+		CloudBananaAPIKeySet:     cloudBananaKeySet,
+		CloudBananaAPIKeyPreview: maskSecret(cfg.BananaAPIKey),
+		DefaultCount:             cfg.DefaultCount,
+		DefaultConcurrency:       cfg.DefaultConcurrency,
+		AutoUploadPixhost:        cfg.AutoUploadPixhost,
+		UpdatedAt:                cfg.UpdatedAt,
 	}
 }
 
@@ -185,7 +224,7 @@ func maskSecret(value string) string {
 		return ""
 	}
 	if len(value) <= 8 {
-		return "••••••••"
+		return "********"
 	}
-	return value[:4] + "••••••••" + value[len(value)-4:]
+	return value[:4] + "********" + value[len(value)-4:]
 }

@@ -1,5 +1,7 @@
 import { type FormEvent, useEffect, useState } from 'react'
-import { getUserConfig, saveUserConfig } from '../api/config'
+import { formatError } from '../api/client'
+import { getUserConfig, saveUserConfig, type SaveUserConfigPayload } from '../api/config'
+import { disableTwoFactor, enableTwoFactor, getCurrentUser, setupTwoFactor, type TwoFactorSetup } from '../api/users'
 import type { UserConfig } from '../types'
 import { clearLocalApiKeys } from '../lib/localApiKeys'
 
@@ -9,64 +11,185 @@ export function SettingsPanel({ onReady, onConfig }: { onReady?: (ready: boolean
   const [config, setConfig] = useState<UserConfig | null>(null)
   const [apiKey, setApiKey] = useState('')
   const [bananaApiKey, setBananaApiKey] = useState('')
+  const [saveApiKeyToCloud, setSaveApiKeyToCloud] = useState(false)
+  const [saveBananaKeyToCloud, setSaveBananaKeyToCloud] = useState(false)
   const [defaultCount, setDefaultCount] = useState<NumericInputValue>(1)
   const [defaultConcurrency, setDefaultConcurrency] = useState<NumericInputValue>(1)
   const [autoUploadPixhost, setAutoUploadPixhost] = useState(false)
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
+  const [twoFactorSetup, setTwoFactorSetup] = useState<TwoFactorSetup | null>(null)
+  const [twoFactorCode, setTwoFactorCode] = useState('')
+  const [showCloudWarning, setShowCloudWarning] = useState(false)
+  const [savingCloudConfirmed, setSavingCloudConfirmed] = useState(false)
   const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+
   useEffect(() => {
-    void getUserConfig().then((cfg) => {
-      setConfig(cfg)
-      setDefaultCount(cfg.defaultCount || 1)
-      setDefaultConcurrency(cfg.defaultConcurrency || 1)
-      setAutoUploadPixhost(Boolean(cfg.autoUploadPixhost))
-      onReady?.(cfg.apiKeySet)
-      onConfig?.(cfg)
-    })
+    void refreshAll()
   }, [onReady, onConfig])
-  async function submit(event: FormEvent) {
-    event.preventDefault()
-    const payload: { apiKey?: string; bananaApiKey?: string; defaultCount: number; defaultConcurrency: number; autoUploadPixhost: boolean } = {
-      defaultCount: numericOrDefault(defaultCount, 1),
-      defaultConcurrency: numericOrDefault(defaultConcurrency, 1),
-      autoUploadPixhost,
-    }
-    if (apiKey.trim()) payload.apiKey = apiKey
-    if (bananaApiKey.trim()) payload.bananaApiKey = bananaApiKey
-    const cfg = await saveUserConfig(payload)
+
+  async function refreshAll() {
+    const [cfg, session] = await Promise.all([getUserConfig(), getCurrentUser()])
+    applyConfig(cfg)
+    setTwoFactorEnabled(Boolean(session.user.twoFactorEnabled))
+  }
+
+  function applyConfig(cfg: UserConfig) {
     setConfig(cfg)
     setDefaultCount(cfg.defaultCount || 1)
     setDefaultConcurrency(cfg.defaultConcurrency || 1)
     setAutoUploadPixhost(Boolean(cfg.autoUploadPixhost))
-    setApiKey('')
-    setBananaApiKey('')
-    setMessage(apiKey.trim() || bananaApiKey.trim() ? 'API Key 和默认生成设置已保存' : '默认生成设置已保存')
     onReady?.(cfg.apiKeySet)
     onConfig?.(cfg)
   }
+
+  async function submit(event: FormEvent) {
+    event.preventDefault()
+    try {
+      await saveSettings(false)
+    } catch (err) {
+      handleActionError(err, '保存设置失败')
+    }
+  }
+
+  async function saveSettings(confirmedCloudRisk: boolean, forceLocalOnly = false) {
+    setError('')
+    const wantsCloud = !forceLocalOnly && ((apiKey.trim() && saveApiKeyToCloud) || (bananaApiKey.trim() && saveBananaKeyToCloud))
+    if (wantsCloud && !confirmedCloudRisk) {
+      setShowCloudWarning(true)
+      return
+    }
+    setShowCloudWarning(false)
+    setSavingCloudConfirmed(false)
+    const payload: SaveUserConfigPayload = {
+      defaultCount: numericOrDefault(defaultCount, 1),
+      defaultConcurrency: numericOrDefault(defaultConcurrency, 1),
+      autoUploadPixhost,
+    }
+    if (apiKey.trim()) {
+      payload.apiKey = apiKey
+      payload.saveApiKeyToCloud = !forceLocalOnly && Boolean(saveApiKeyToCloud)
+    }
+    if (bananaApiKey.trim()) {
+      payload.bananaApiKey = bananaApiKey
+      payload.saveBananaKeyToCloud = !forceLocalOnly && Boolean(saveBananaKeyToCloud)
+    }
+    const cfg = await saveUserConfig(payload)
+    applyConfig(cfg)
+    setApiKey('')
+    setBananaApiKey('')
+    setSaveApiKeyToCloud(false)
+    setSaveBananaKeyToCloud(false)
+    setMessage(apiKey.trim() || bananaApiKey.trim() ? 'API Key 和默认生成设置已保存' : '默认生成设置已保存')
+  }
+
   async function clearLocalKey(kind: 'apiKey' | 'bananaApiKey') {
+    setError('')
     clearLocalApiKeys(kind === 'apiKey' ? { apiKey: true } : { bananaApiKey: true })
     const cfg = await getUserConfig()
-    setConfig(cfg)
+    applyConfig(cfg)
     setApiKey('')
     setBananaApiKey('')
     setMessage(kind === 'apiKey' ? 'codex-key 已从当前浏览器清除' : 'Banana Key 已从当前浏览器清除')
-    onReady?.(cfg.apiKeySet)
-    onConfig?.(cfg)
   }
+
+  async function clearCloudKey(kind: 'apiKey' | 'bananaApiKey') {
+    setError('')
+    const cfg = await saveUserConfig(kind === 'apiKey' ? { clearCloudApiKey: true } : { clearCloudBananaApiKey: true })
+    applyConfig(cfg)
+    setMessage(kind === 'apiKey' ? 'codex-key 已从云端清除' : 'Banana Key 已从云端清除')
+  }
+
+  async function startTwoFactorSetup() {
+    setError('')
+    setTwoFactorSetup(await setupTwoFactor())
+    setTwoFactorCode('')
+    setMessage('请用验证器 App 录入 2FA 密钥，并输入 6 位验证码完成开启')
+  }
+
+  async function confirmTwoFactor() {
+    try {
+      setError('')
+      const session = await enableTwoFactor(twoFactorCode)
+      setTwoFactorEnabled(Boolean(session.user.twoFactorEnabled))
+      setTwoFactorSetup(null)
+      setTwoFactorCode('')
+      setMessage('2FA 已开启')
+    } catch (err) {
+      handleActionError(err, '开启 2FA 失败')
+    }
+  }
+
+  async function turnOffTwoFactor() {
+    try {
+      setError('')
+      const session = await disableTwoFactor(twoFactorCode)
+      setTwoFactorEnabled(Boolean(session.user.twoFactorEnabled))
+      setTwoFactorSetup(null)
+      setTwoFactorCode('')
+      setMessage('2FA 已关闭')
+    } catch (err) {
+      handleActionError(err, '关闭 2FA 失败')
+    }
+  }
+
+  function handleActionError(err: unknown, fallback: string) {
+    setSavingCloudConfirmed(false)
+    setMessage('')
+    setError(formatError(err, fallback))
+  }
+
   return (
     <section className="settings-flow-panel">
       <form onSubmit={submit} className="settings-flow-form">
+        <section className="settings-card security-card">
+          <div className="section-title">
+            <span>账号安全</span>
+            <small>2FA</small>
+          </div>
+          <p className="muted">如果选择把 Key 上传到云端，强烈建议先开启 2FA。即使账号密码泄露，攻击者还需要一次性验证码才能登录。</p>
+          <div className="settings-key-actions">
+            <div className={`status-line ${twoFactorEnabled ? 'ready' : 'missing'}`}>2FA：{twoFactorEnabled ? '已开启' : '未开启'}</div>
+            {twoFactorEnabled ? (
+              <button type="button" onClick={() => setTwoFactorSetup(null)}>管理 2FA</button>
+            ) : (
+              <button type="button" onClick={() => void startTwoFactorSetup()}>开启 2FA</button>
+            )}
+          </div>
+          {twoFactorSetup ? (
+            <div className="two-factor-setup">
+              <span>手动录入密钥</span>
+              <code>{twoFactorSetup.secret}</code>
+              <a href={twoFactorSetup.otpauthUrl}>打开验证器链接</a>
+              <input inputMode="numeric" value={twoFactorCode} onChange={(e) => setTwoFactorCode(e.target.value)} placeholder="输入 6 位验证码" />
+              <button type="button" className="primary" onClick={() => void confirmTwoFactor()}>验证并开启</button>
+            </div>
+          ) : twoFactorEnabled ? (
+            <div className="two-factor-setup compact">
+              <input inputMode="numeric" value={twoFactorCode} onChange={(e) => setTwoFactorCode(e.target.value)} placeholder="输入 6 位验证码后关闭 2FA" />
+              <button type="button" onClick={() => void turnOffTwoFactor()}>关闭 2FA</button>
+            </div>
+          ) : null}
+        </section>
+
         <section className="settings-card key-card">
           <div className="section-title">
             <span>codex-key</span>
             <small>Image-2 / 提示词助手</small>
           </div>
-          <p className="muted">Key 只保存在当前浏览器本地；提交任务或使用提示词助手时临时交给本机后端代理请求。</p>
+          <p className="muted">默认只保存在当前浏览器本地。勾选上传到云端后，其他设备登录同一账号也能使用，但账号泄露时 Key 有被使用或窃取的风险。</p>
           <div className="settings-key-actions">
-            <div className={`status-line ${config?.apiKeySet ? 'ready' : 'missing'}`}>当前：{config?.apiKeySet ? `已设置 ${config.apiKeyPreview}` : '未设置'}</div>
-            <button type="button" disabled={!config?.apiKeySet} onClick={() => void clearLocalKey('apiKey')}>清除本地 Key</button>
+            <div className={`status-line ${config?.apiKeySet ? 'ready' : 'missing'}`}>
+              当前：{config?.apiKeySet ? `已设置 ${config.apiKeyPreview}（${sourceLabel(config.apiKeySource)}）` : '未设置'}
+            </div>
+            <button type="button" disabled={!config?.localApiKeySet} onClick={() => void clearLocalKey('apiKey')}>清除本地 Key</button>
+            <button type="button" disabled={!config?.cloudApiKeySet} onClick={() => void clearCloudKey('apiKey')}>清除云端 Key</button>
           </div>
           <input value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="填写 codex-key" />
+          <label className="check-row cloud-key-check">
+            <input type="checkbox" checked={saveApiKeyToCloud} onChange={(e) => setSaveApiKeyToCloud(e.target.checked)} />
+            <span>同时上传到云端</span>
+          </label>
         </section>
 
         <section className="settings-card banana-key-card">
@@ -74,12 +197,19 @@ export function SettingsPanel({ onReady, onConfig }: { onReady?: (ready: boolean
             <span>Banana 分组 Key</span>
             <small>单独 apikey</small>
           </div>
-          <p className="muted">请在 NewAPI / CLIProxyAPI 里新建一个“banana”分组的 apikey，然后填到这里；URL 使用后端统一配置的 NewAPI URL。</p>
+          <p className="muted">默认只保存在当前浏览器本地。勾选上传到云端后，其他设备登录同一账号也能使用；账号泄露时同样存在 Key 被使用或窃取的风险。</p>
           <div className="settings-key-actions">
-            <div className={`status-line ${config?.bananaApiKeySet ? 'ready' : 'missing'}`}>当前：{config?.bananaApiKeySet ? `已设置 ${config.bananaApiKeyPreview}` : '未设置'}</div>
-            <button type="button" disabled={!config?.bananaApiKeySet} onClick={() => void clearLocalKey('bananaApiKey')}>清除本地 Key</button>
+            <div className={`status-line ${config?.bananaApiKeySet ? 'ready' : 'missing'}`}>
+              当前：{config?.bananaApiKeySet ? `已设置 ${config.bananaApiKeyPreview}（${sourceLabel(config.bananaApiKeySource)}）` : '未设置'}
+            </div>
+            <button type="button" disabled={!config?.localBananaApiKeySet} onClick={() => void clearLocalKey('bananaApiKey')}>清除本地 Key</button>
+            <button type="button" disabled={!config?.cloudBananaApiKeySet} onClick={() => void clearCloudKey('bananaApiKey')}>清除云端 Key</button>
           </div>
           <input value={bananaApiKey} onChange={(e) => setBananaApiKey(e.target.value)} placeholder="填写 banana 分组 API Key" />
+          <label className="check-row cloud-key-check">
+            <input type="checkbox" checked={saveBananaKeyToCloud} onChange={(e) => setSaveBananaKeyToCloud(e.target.checked)} />
+            <span>同时上传到云端</span>
+          </label>
         </section>
 
         <section className="settings-card defaults-card">
@@ -106,16 +236,38 @@ export function SettingsPanel({ onReady, onConfig }: { onReady?: (ready: boolean
             <input type="checkbox" checked={autoUploadPixhost} onChange={(e) => setAutoUploadPixhost(e.target.checked)} />
             <span>生成成功后自动上传到 PiXhost 图床</span>
           </label>
-          <small className="muted">自动上传可关闭；关闭后仍可在结果页手动点击“上传图床”。PiXhost 单张最大 10MB。</small>
+          <small className="muted">自动上传可关闭；关闭后仍可在结果页手动点击上传图床。PiXhost 单张最大 10MB。</small>
         </section>
 
         <div className="settings-submit-row">
           <button type="submit" className="primary">保存设置</button>
           {message ? <small className="ok">{message}</small> : null}
+          {error ? <small className="error">{error}</small> : null}
         </div>
       </form>
+
+      {showCloudWarning ? (
+        <div className="cloud-warning-mask" role="dialog" aria-modal="true">
+          <div className="cloud-warning-dialog">
+            <h3>确认上传 Key 到云端？</h3>
+            <p>上传后 Key 会保存在服务器账号空间中，方便多设备使用。但如果账号密码泄露，攻击者可能使用或窃取这些 Key。</p>
+            <p>建议先开启 2FA，再上传云端 Key。</p>
+            <div className="cloud-warning-actions">
+              <button type="button" onClick={() => { setShowCloudWarning(false); if (!twoFactorEnabled) void startTwoFactorSetup() }}>先开启 2FA</button>
+              <button type="button" onClick={() => { setSaveApiKeyToCloud(false); setSaveBananaKeyToCloud(false); void saveSettings(true, true).catch((err) => handleActionError(err, '保存设置失败')) }}>仅本地保存</button>
+              <button type="button" className="primary" disabled={savingCloudConfirmed} onClick={() => { setSavingCloudConfirmed(true); void saveSettings(true).catch((err) => handleActionError(err, '保存设置失败')) }}>我了解风险，上传云端</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   )
+}
+
+function sourceLabel(source?: 'local' | 'cloud' | 'none') {
+  if (source === 'cloud') return '云端'
+  if (source === 'local') return '本地'
+  return '未设置'
 }
 
 function readNumberInput(value: string): NumericInputValue {

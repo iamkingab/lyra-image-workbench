@@ -97,15 +97,19 @@ func (m *Manager) Create(spaceToken string, req CreateRequest) (Job, error) {
 	if err != nil {
 		return Job{}, err
 	}
-	if _, err := m.spaceConfig.Get(spaceToken); err != nil {
+	spaceCfg, err := m.spaceConfig.Get(spaceToken)
+	if err != nil {
 		return Job{}, err
 	}
 	apiKey := runtimeAPIKey(req.RuntimeSecrets, provider)
 	if apiKey == "" {
+		apiKey = cloudAPIKey(spaceCfg, provider)
+	}
+	if apiKey == "" {
 		if provider == config.BananaProvider {
-			return Job{}, errors.New("banana API key is saved only in the browser; save it locally and retry")
+			return Job{}, errors.New("banana API key is not configured; save it locally or upload it to cloud after enabling account protection")
 		}
-		return Job{}, errors.New("codex-key is saved only in the browser; save it locally and retry")
+		return Job{}, errors.New("codex-key is not configured; save it locally or upload it to cloud after enabling account protection")
 	}
 	if req.Mode == ModeImageToImage {
 		if len(req.UploadIDs) == 0 {
@@ -490,10 +494,16 @@ func (m *Manager) generateOne(ctx context.Context, spaceToken string, jobID stri
 	apiKey := m.jobAPIKey(jobID)
 	skipImageParams := provider == config.BananaProvider
 	if apiKey == "" {
-		if provider == config.BananaProvider {
-			return NewResult(index, StatusFailed, "banana API key is saved only in the browser; save it locally and retry")
+		apiKey = cloudAPIKey(spaceCfg, provider)
+		if apiKey != "" {
+			m.setJobSecret(jobID, apiKey)
 		}
-		return NewResult(index, StatusFailed, "codex-key is saved only in the browser; save it locally and retry")
+	}
+	if apiKey == "" {
+		if provider == config.BananaProvider {
+			return NewResult(index, StatusFailed, "banana API key is not configured; save it locally or upload it to cloud after enabling account protection")
+		}
+		return NewResult(index, StatusFailed, "codex-key is not configured; save it locally or upload it to cloud after enabling account protection")
 	}
 	inputs := make([]newapi.InputImage, 0, len(job.UploadIDs))
 	for _, id := range job.UploadIDs {
@@ -774,6 +784,13 @@ func runtimeAPIKey(secrets RuntimeSecrets, provider string) string {
 		return strings.TrimSpace(secrets.BananaAPIKey)
 	}
 	return strings.TrimSpace(secrets.APIKey)
+}
+
+func cloudAPIKey(cfg spaceconfig.Config, provider string) string {
+	if provider == config.BananaProvider {
+		return strings.TrimSpace(cfg.BananaAPIKey)
+	}
+	return strings.TrimSpace(cfg.APIKey)
 }
 
 func compactDebugText(value string, limit int) string {

@@ -39,6 +39,8 @@ type record struct {
 	StorageToken string `json:"storageToken"`
 	SaltHex      string `json:"saltHex"`
 	HashHex      string `json:"hashHex"`
+	TOTPSecret   string `json:"totpSecret,omitempty"`
+	TOTPEnabled  bool   `json:"totpEnabled,omitempty"`
 	CreatedAt    string `json:"createdAt"`
 	UpdatedAt    string `json:"updatedAt"`
 	LastLoginAt  string `json:"lastLoginAt,omitempty"`
@@ -50,10 +52,11 @@ type sessionRecord struct {
 }
 
 type PublicUser struct {
-	Username    string `json:"username"`
-	DisplayName string `json:"displayName"`
-	CreatedAt   string `json:"createdAt"`
-	LastLoginAt string `json:"lastLoginAt,omitempty"`
+	Username         string `json:"username"`
+	DisplayName      string `json:"displayName"`
+	TwoFactorEnabled bool   `json:"twoFactorEnabled"`
+	CreatedAt        string `json:"createdAt"`
+	LastLoginAt      string `json:"lastLoginAt,omitempty"`
 }
 
 type Session struct {
@@ -123,7 +126,7 @@ func (s *Store) Register(username string, password string, storageToken string) 
 	return s.newSessionLocked(normalized)
 }
 
-func (s *Store) Login(username string, password string) (Session, error) {
+func (s *Store) Login(username string, password string, twoFactorCode string) (Session, error) {
 	normalized, _, err := normalizeUsername(username)
 	if err != nil {
 		return Session{}, err
@@ -138,6 +141,14 @@ func (s *Store) Login(username string, password string) (Session, error) {
 	got := hashPassword(user.SaltHex, password)
 	if subtle.ConstantTimeCompare([]byte(got), []byte(user.HashHex)) != 1 {
 		return Session{}, NewError("USER_LOGIN_INVALID", "用户名或密码错误")
+	}
+	if user.TOTPEnabled {
+		if strings.TrimSpace(twoFactorCode) == "" {
+			return Session{}, NewError("USER_TOTP_REQUIRED", "请输入 2FA 验证码")
+		}
+		if !verifyTOTP(user.TOTPSecret, twoFactorCode, time.Now()) {
+			return Session{}, NewError("USER_TOTP_INVALID", "2FA 验证码无效或已过期")
+		}
 	}
 	s.current.Users[index].LastLoginAt = time.Now().Format(time.RFC3339)
 	s.current.Users[index].UpdatedAt = s.current.Users[index].LastLoginAt
@@ -172,6 +183,77 @@ func (s *Store) Logout(token string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	delete(s.sessions, strings.TrimSpace(token))
+}
+
+func (s *Store) BeginTOTPSetup(username string) (TOTPSetup, error) {
+	normalized, _, err := normalizeUsername(username)
+	if err != nil {
+		return TOTPSetup{}, err
+	}
+	secret, err := newTOTPSecret()
+	if err != nil {
+		return TOTPSetup{}, err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	index, ok := s.findLocked(normalized)
+	if !ok {
+		return TOTPSetup{}, NewError("USER_NOT_FOUND", "用户不存在")
+	}
+	if s.current.Users[index].TOTPEnabled {
+		return TOTPSetup{}, NewError("USER_TOTP_ALREADY_ENABLED", "2FA 已开启")
+	}
+	s.current.Users[index].TOTPSecret = secret
+	s.current.Users[index].TOTPEnabled = false
+	s.current.Users[index].UpdatedAt = time.Now().Format(time.RFC3339)
+	if err := s.saveLocked(); err != nil {
+		return TOTPSetup{}, err
+	}
+	return setupFromSecret(normalized, secret), nil
+}
+
+func (s *Store) EnableTOTP(username string, code string) error {
+	normalized, _, err := normalizeUsername(username)
+	if err != nil {
+		return err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	index, ok := s.findLocked(normalized)
+	if !ok {
+		return NewError("USER_NOT_FOUND", "用户不存在")
+	}
+	user := s.current.Users[index]
+	if strings.TrimSpace(user.TOTPSecret) == "" {
+		return NewError("USER_TOTP_SETUP_REQUIRED", "请先生成 2FA 密钥")
+	}
+	if !verifyTOTP(user.TOTPSecret, code, time.Now()) {
+		return NewError("USER_TOTP_INVALID", "2FA 验证码无效或已过期")
+	}
+	s.current.Users[index].TOTPEnabled = true
+	s.current.Users[index].UpdatedAt = time.Now().Format(time.RFC3339)
+	return s.saveLocked()
+}
+
+func (s *Store) DisableTOTP(username string, code string) error {
+	normalized, _, err := normalizeUsername(username)
+	if err != nil {
+		return err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	index, ok := s.findLocked(normalized)
+	if !ok {
+		return NewError("USER_NOT_FOUND", "用户不存在")
+	}
+	user := s.current.Users[index]
+	if user.TOTPEnabled && !verifyTOTP(user.TOTPSecret, code, time.Now()) {
+		return NewError("USER_TOTP_INVALID", "2FA 验证码无效或已过期")
+	}
+	s.current.Users[index].TOTPSecret = ""
+	s.current.Users[index].TOTPEnabled = false
+	s.current.Users[index].UpdatedAt = time.Now().Format(time.RFC3339)
+	return s.saveLocked()
 }
 
 func (s *Store) newSessionLocked(username string) (Session, error) {
@@ -224,10 +306,11 @@ func (s *Store) saveLocked() error {
 func sessionFromRecord(user record, token string, expires time.Time) Session {
 	return Session{
 		User: PublicUser{
-			Username:    user.Username,
-			DisplayName: user.DisplayName,
-			CreatedAt:   user.CreatedAt,
-			LastLoginAt: user.LastLoginAt,
+			Username:         user.Username,
+			DisplayName:      user.DisplayName,
+			TwoFactorEnabled: user.TOTPEnabled,
+			CreatedAt:        user.CreatedAt,
+			LastLoginAt:      user.LastLoginAt,
 		},
 		ExpiresAt:    expires.Format(time.RFC3339),
 		Token:        token,

@@ -21,12 +21,26 @@ type LocalApiKeyStore = Record<string, LocalApiKeys>
 
 export function mergeLocalApiKeys(config: UserConfig, scope = getLocalKeyScope()): UserConfig {
   const keys = getLocalApiKeys(scope)
+  const localApiKeySet = Boolean(keys.apiKey)
+  const localBananaApiKeySet = Boolean(keys.bananaApiKey)
+  const cloudApiKeySet = Boolean(config.cloudApiKeySet ?? config.apiKeySet)
+  const cloudBananaApiKeySet = Boolean(config.cloudBananaApiKeySet ?? config.bananaApiKeySet)
   return {
     ...config,
-    apiKeySet: Boolean(keys.apiKey),
-    apiKeyPreview: maskSecret(keys.apiKey || ''),
-    bananaApiKeySet: Boolean(keys.bananaApiKey),
-    bananaApiKeyPreview: maskSecret(keys.bananaApiKey || ''),
+    localApiKeySet,
+    localApiKeyPreview: maskSecret(keys.apiKey || ''),
+    localBananaApiKeySet,
+    localBananaApiKeyPreview: maskSecret(keys.bananaApiKey || ''),
+    cloudApiKeySet,
+    cloudApiKeyPreview: config.cloudApiKeyPreview || config.apiKeyPreview || '',
+    cloudBananaApiKeySet,
+    cloudBananaApiKeyPreview: config.cloudBananaApiKeyPreview || config.bananaApiKeyPreview || '',
+    apiKeySet: localApiKeySet || cloudApiKeySet,
+    apiKeyPreview: localApiKeySet ? maskSecret(keys.apiKey || '') : (config.cloudApiKeyPreview || config.apiKeyPreview || ''),
+    bananaApiKeySet: localBananaApiKeySet || cloudBananaApiKeySet,
+    bananaApiKeyPreview: localBananaApiKeySet ? maskSecret(keys.bananaApiKey || '') : (config.cloudBananaApiKeyPreview || config.bananaApiKeyPreview || ''),
+    apiKeySource: localApiKeySet ? 'local' : cloudApiKeySet ? 'cloud' : 'none',
+    bananaApiKeySource: localBananaApiKeySet ? 'local' : cloudBananaApiKeySet ? 'cloud' : 'none',
   }
 }
 
