@@ -178,7 +178,14 @@ jobs:
       - name: Generate checksums
         run: |
           cd dist
-          sha256sum * > checksums.txt
+          shopt -s nullglob
+          files=(*.tar.gz *.zip)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No release archives found" >&2
+            find . -maxdepth 2 -type f >&2
+            exit 1
+          fi
+          sha256sum "${files[@]}" > checksums.txt
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
