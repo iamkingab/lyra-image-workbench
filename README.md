@@ -217,6 +217,72 @@ Vite 会把 `/api` 和 `/outputs` 代理到 `127.0.0.1:8787`。
 
 如果只是想快速跑起来，请先看 [快速开始](#快速开始)。如果要放到服务器长期运行，建议先看 [部署教程索引](#部署教程索引) 选择对应教程。
 
+### Docker 镜像部署
+
+镜像由 GitHub Actions 自动构建并发布到 GHCR：
+
+```text
+ghcr.io/y08lin4/lyra-image-workbench:latest
+```
+
+#### docker run
+
+```bash
+docker run -d \
+  --name lyra-image-workbench \
+  --restart unless-stopped \
+  -p 8787:8787 \
+  -v lyra-image-workbench-data:/app/data \
+  -v lyra-image-workbench-outputs:/app/outputs \
+  ghcr.io/y08lin4/lyra-image-workbench:latest
+```
+
+如果 NewAPI 跑在宿主机 `127.0.0.1:3000`，容器内要用 `host.docker.internal` 访问宿主机：
+
+```bash
+docker run -d \
+  --name lyra-image-workbench \
+  --restart unless-stopped \
+  --add-host=host.docker.internal:host-gateway \
+  -p 8787:8787 \
+  -e NEWAPI_BASE_URL=http://host.docker.internal:3000/v1 \
+  -v lyra-image-workbench-data:/app/data \
+  -v lyra-image-workbench-outputs:/app/outputs \
+  ghcr.io/y08lin4/lyra-image-workbench:latest
+```
+
+#### Docker Compose
+
+新建 `compose.yml`：
+
+```yaml
+services:
+  lyra-image-workbench:
+    image: ghcr.io/y08lin4/lyra-image-workbench:latest
+    container_name: lyra-image-workbench
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8787:8787"
+    environment:
+      LOCAL_IMAGE_HOST: 0.0.0.0
+      LOCAL_IMAGE_PORT: 8787
+      NEWAPI_BASE_URL: http://host.docker.internal:3000/v1
+      NEWAPI_TIMEOUT_SEC: 600
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./data:/app/data
+      - ./outputs:/app/outputs
+```
+
+启动：
+
+```bash
+docker compose up -d
+```
+
+更多 Docker 数据卷、权限和更新说明见 [`docs/DOCKER.md`](docs/DOCKER.md)。
+
 ### Linux 构建
 
 ```bash

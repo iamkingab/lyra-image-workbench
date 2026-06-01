@@ -17,7 +17,7 @@ ghcr.io/y08lin4/lyra-image-workbench
 - PR：只构建验证，不推送镜像。
 - 支持手动 `workflow_dispatch`。
 
-## 一键运行
+## 方式一：docker run
 
 ```bash
 docker run -d \
@@ -42,7 +42,7 @@ http://127.0.0.1:8787
 3. 在 Admin 中配置 `NewAPI Base URL`。
 4. 回到工作台设置页保存本地 Key 或确认后保存云端 Key。
 
-## 连接宿主机上的 NewAPI
+### 连接宿主机上的 NewAPI
 
 如果 NewAPI 跑在宿主机 `127.0.0.1:3000`，容器内不能直接用 `127.0.0.1` 访问宿主机。Linux Docker 可这样运行：
 
@@ -58,7 +58,53 @@ docker run -d \
   ghcr.io/y08lin4/lyra-image-workbench:latest
 ```
 
-## Docker Compose
+更新 `docker run` 部署：
+
+```bash
+docker pull ghcr.io/y08lin4/lyra-image-workbench:latest
+docker rm -f lyra-image-workbench
+docker run -d \
+  --name lyra-image-workbench \
+  --restart unless-stopped \
+  --add-host=host.docker.internal:host-gateway \
+  -p 8787:8787 \
+  -e NEWAPI_BASE_URL=http://host.docker.internal:3000/v1 \
+  -v lyra-image-workbench-data:/app/data \
+  -v lyra-image-workbench-outputs:/app/outputs \
+  ghcr.io/y08lin4/lyra-image-workbench:latest
+```
+
+命名卷 `lyra-image-workbench-data` 和 `lyra-image-workbench-outputs` 不会因为删除容器而丢失。
+
+## 方式二：Docker Compose
+
+新建目录和 `compose.yml`：
+
+```bash
+mkdir -p /opt/lyra-image-workbench-docker
+cd /opt/lyra-image-workbench-docker
+cat > compose.yml <<'EOF'
+services:
+  lyra-image-workbench:
+    image: ghcr.io/y08lin4/lyra-image-workbench:latest
+    container_name: lyra-image-workbench
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8787:8787"
+    environment:
+      LOCAL_IMAGE_HOST: 0.0.0.0
+      LOCAL_IMAGE_PORT: 8787
+      NEWAPI_BASE_URL: http://host.docker.internal:3000/v1
+      NEWAPI_TIMEOUT_SEC: 600
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./data:/app/data
+      - ./outputs:/app/outputs
+EOF
+```
+
+或者手动保存为：
 
 ```yaml
 services:
@@ -87,6 +133,15 @@ docker compose up -d
 ```
 
 如果前面还有 Nginx / Caddy / 宝塔反代，建议保持 `127.0.0.1:8787:8787`，只让反代服务对公网暴露 HTTPS。
+
+更新 Compose 部署：
+
+```bash
+cd /opt/lyra-image-workbench-docker
+docker compose pull
+docker compose up -d
+docker image prune -f
+```
 
 ## 数据目录和权限
 
